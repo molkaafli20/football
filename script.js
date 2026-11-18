@@ -315,13 +315,10 @@ function readState() {
 let state = readState();
 let route = 'home';
 let activeMission = 0;
-let selectedItem = null;
 let missionFeedback = null;
 let quizRun = null;
 let dialogConfirm = null;
 let toastTimer = null;
-let touchDrag = null;
-let suppressClickUntil = 0;
 let locationBusy = false;
 let locationMessage = null;
 let musicPlaying = false;
@@ -756,6 +753,14 @@ function renderJourney() {
       el('button', { className: 'button', type: 'button', dataset: { route: 'quiz' } }, state.quiz.claimed ? 'REVOIR MON QUIZ' : 'ACCÉDER AU QUIZ FINAL', icon('trophy'))) : null);
 }
 
+// Un élément déplaçable : attribut draggable="true" (étape 1 du cours) et un id unique.
+function renderDragItem(item, placed) {
+  return el('div', {
+    id: 'drag-' + item.id, className: 'drag-item' + (placed ? ' placed' : ''),
+    draggable: placed ? 'false' : 'true', title: placed ? item.label + ' : bien placé' : 'Fais glisser ' + item.label
+  }, item.art ? objectImage(item.art, 'drag-image') : icon(placed ? 'check-circle' : item.icon), el('span', null, item.label), icon(placed ? 'check' : 'grip', 'drag-handle'));
+}
+
 function renderMission() {
   const m = MISSIONS[activeMission];
   const saved = state.missions[activeMission];
@@ -763,32 +768,20 @@ function renderMission() {
   const allCorrect = count === m.items.length;
   const feedback = missionFeedback && missionFeedback.mission === m.id ? missionFeedback : null;
 
-  const items = m.items.map(item => {
-    const placed = saved.answers[item.id] === item.target;
-    const selected = !!(selectedItem && selectedItem.mission === m.id && selectedItem.id === item.id);
-    return el('button', {
-      type: 'button', id: 'drag-' + item.id, className: 'drag-item' + (placed ? ' placed' : '') + (selected ? ' selected' : ''),
-      draggable: String(!placed), dataset: { dragItem: item.id, mission: m.id }, 'aria-pressed': String(selected), disabled: placed,
-      'aria-label': item.label + (placed ? ', correctement associé' : ', sélectionner puis choisir une destination')
-    }, item.art ? objectImage(item.art, 'drag-image') : icon(placed ? 'check-circle' : item.icon), el('span', null, item.label), icon(placed ? 'check' : 'grip', 'drag-handle'));
-  });
+  // Les éléments pas encore placés restent à gauche ; les éléments bien placés sont dans leur zone.
+  const items = m.items.filter(item => saved.answers[item.id] !== item.target).map(item => renderDragItem(item, false));
 
   const zones = m.targets.map((target, i) => {
     const assigned = m.items.filter(item => saved.answers[item.id] === target.id);
     const capacity = target.capacity || 1;
     const full = assigned.length === capacity;
-    const plural = target.capacity > 1 ? 's' : '';
     const isError = feedback && feedback.type === 'error' && feedback.target === target.id;
-    return el('button', {
-      type: 'button', id: 'zone-' + target.id, className: 'drop-zone' + (full ? ' is-full' : '') + (isError ? ' is-error' : ''),
-      dataset: { dropTarget: target.id, mission: m.id },
-      'aria-label': `Destination : ${target.title}. ${assigned.length} sur ${capacity} élément${plural} placé${plural}.`
-    },
+    return el('div', { id: 'zone-' + target.id, className: 'drop-zone' + (full ? ' is-full' : '') + (isError ? ' is-error' : '') },
       el('span', { className: 'zone-number' }, full ? icon('check') : String(i + 1).padStart(2, '0')),
-      el('span', { className: 'zone-content' },
+      el('div', { className: 'zone-content' },
         el('span', { className: 'zone-title' }, target.title),
         el('span', { className: 'zone-description' }, target.description + (target.capacity ? ' · ' + assigned.length + '/' + target.capacity : '')),
-        el('span', { className: 'zone-answers' }, assigned.map(item => el('span', { className: 'dropped-item' }, item.art ? objectImage(item.art, 'dropped-image') : icon('check'), item.label)))),
+        el('div', { className: 'zone-answers', id: 'answers-' + target.id }, assigned.map(item => renderDragItem(item, true)))),
       full ? null : icon('download', 'drop-placeholder'));
   });
 
@@ -799,7 +792,7 @@ function renderMission() {
     : 'Chaque bonne association rapporte 10 points. Une erreur ? Prends le temps de comprendre, puis réessaie.';
   const helpText = allCorrect
     ? 'Toutes les associations sont correctes. ' + (saved.completed ? 'Tu peux continuer ton parcours.' : 'Valide maintenant ta mission pour débloquer la suite.')
-    : 'Glisse un élément, ou touche-le puis choisis sa destination. Fonctionne aussi avec Tab et Entrée.';
+    : 'Fais glisser chaque élément avec la souris et lâche-le dans la bonne zone.';
 
   return el('div', { className: 'container page' },
     el('button', { type: 'button', className: 'text-button back-link', dataset: { route: 'journey' } }, icon('arrow'), 'Retour au parcours'),
@@ -1084,6 +1077,7 @@ function renderCurrent(scrollToTop = false) {
   }
   const titles = { home: 'Deviens une légende !', journey: 'Le parcours', mission: MISSIONS[activeMission].title, quiz: 'Quiz final', hangman: 'Pendu football', dashboard: 'Tableau de bord', settings: 'Paramètres' };
   document.title = 'FOOTBALL JOURNEY - ' + titles[route];
+  if (route === 'mission') activerDragAndDrop();
   attachMediaHandlers();
   updateStorageStatus();
   if (scrollToTop) {
@@ -1144,7 +1138,6 @@ function navigate(destination, missionId = 0, recordHistory = true) {
   }
   const video = document.getElementById('football-video');
   if (video) video.pause();
-  selectedItem = null;
   missionFeedback = null;
   route = destination;
   if (destination === 'mission') activeMission = missionId;
@@ -1244,38 +1237,83 @@ function submitProfile(form) {
 /* ==========================================================================
    8. MISSIONS : DRAG & DROP ET VALIDATION
    ========================================================================== */
-function selectItem(missionId, itemId) {
-  if (!state.profile || route !== 'mission' || activeMission !== missionId || !canAccessMission(missionId)) return;
-  const item = MISSIONS[missionId].items.find(i => i.id === itemId);
-  if (!item || state.missions[missionId].answers[item.id]) return;
-  selectedItem = selectedItem && selectedItem.mission === missionId && selectedItem.id === itemId ? null : { mission: missionId, id: itemId };
-  renderCurrent(false);
-  focusById('drag-' + itemId);
+/* Méthode du cours « Drag & Drop » :
+   Étape 1 : élément draggable (draggable="true") + écouteur dragstart.
+   Étape 2 : dragstart stocke l'id de l'élément avec dataTransfer.setData().
+   Étape 3 : la zone de drop autorise le dépôt avec dragover + preventDefault().
+   Étape 4 : drop récupère l'id avec getData(), retrouve l'élément avec
+             getElementById() et l'ajoute dans la zone avec appendChild(). */
+
+// Étape 2 : dragstart, on indique ce que l'on déplace (l'id de l'élément).
+function drag(ev) {
+  ev.dataTransfer.setData('text/plain', ev.target.id);
+  ev.dataTransfer.effectAllowed = 'move';
+  ev.target.classList.add('dragging');
 }
 
-function tryDrop(missionId, itemId, targetId) {
-  if (!state.profile || route !== 'mission' || activeMission !== missionId || !canAccessMission(missionId)) return;
-  const mission = MISSIONS[missionId];
-  const item = mission.items.find(i => i.id === itemId);
-  const target = mission.targets.find(t => t.id === targetId);
-  if (!item || !target) return;
-  if (state.missions[missionId].answers[item.id]) { notify('Cet élément est déjà correctement associé.'); return; }
+// dragend : le déplacement est terminé (réussi ou non).
+function finDrag(ev) {
+  ev.target.classList.remove('dragging');
+  byClass('drag-over', main).forEach(zone => zone.classList.remove('drag-over'));
+  removeDragData(ev);
+}
+
+// Annuler le déplacement : on supprime les données de glissement.
+function removeDragData(ev) {
+  ev.dataTransfer.clearData();
+}
+
+// Étape 3 : autoriser le drop (par défaut le navigateur l'interdit).
+function allowDrop(ev) {
+  ev.preventDefault();
+}
+
+// Étape 4 : que faire dans le drop.
+function drop(ev, container) {
+  ev.preventDefault();
+  container.classList.remove('drag-over');
+  const id = ev.dataTransfer.getData('text/plain'); // récupère l'id
+  const draggedElement = document.getElementById(id);
+  if (draggedElement) verifierDepot(draggedElement, container);
+}
+
+// On accroche les écouteurs après chaque affichage d'une mission.
+function activerDragAndDrop() {
+  byClass('drag-item', main).forEach(dragItem => {
+    if (dragItem.getAttribute('draggable') !== 'true') return;
+    dragItem.addEventListener('dragstart', drag);
+    dragItem.addEventListener('dragend', finDrag);
+  });
+  byClass('drop-zone', main).forEach(container => {
+    container.addEventListener('dragenter', function (ev) { ev.preventDefault(); container.classList.add('drag-over'); });
+    container.addEventListener('dragover', allowDrop);
+    container.addEventListener('dragleave', function () { container.classList.remove('drag-over'); });
+    container.addEventListener('drop', function (ev) { drop(ev, container); });
+  });
+}
+
+// Vérifie si l'élément est déposé dans la bonne zone : « Bravo ! » ou message d'erreur explicatif.
+function verifierDepot(draggedElement, container) {
+  if (!state.profile || route !== 'mission' || !canAccessMission(activeMission)) return;
+  const mission = MISSIONS[activeMission];
+  const item = mission.items.find(i => 'drag-' + i.id === draggedElement.id);
+  const target = mission.targets.find(t => 'zone-' + t.id === container.id);
+  if (!item || !target || state.missions[activeMission].answers[item.id]) return;
   if (item.target !== target.id) {
-    missionFeedback = { mission: missionId, target: targetId, type: 'error', message: (item.wrong || 'Non, ce n’est pas la bonne zone !') + ' ' + item.explanation + ' Réessaie, tu ne perds aucun point.' };
-    selectedItem = { mission: missionId, id: itemId };
+    missionFeedback = { mission: activeMission, target: target.id, type: 'error', message: (item.wrong || 'Non, ce n’est pas la bonne zone !') + ' ' + item.explanation + ' Réessaie, tu ne perds aucun point.' };
     renderCurrent(false);
-    focusById('zone-' + targetId);
     return;
   }
+  // Bonne zone : l'élément déplacé devient un fils de la zone (appendChild, comme dans le cours).
+  byId('answers-' + target.id).appendChild(draggedElement);
+  draggedElement.setAttribute('draggable', 'false');
+  draggedElement.classList.add('placed');
   const before = state.totalPoints;
-  state.missions[missionId].answers[item.id] = target.id;
+  state.missions[activeMission].answers[item.id] = target.id;
   persist();
   const awarded = state.totalPoints - before;
-  selectedItem = null;
-  missionFeedback = { mission: missionId, target: targetId, type: 'success', message: 'Bravo ! ' + (awarded > 0 ? '+10 points. ' : '') + item.explanation + (storageAvailable ? '' : ' Attention : ces points ne sont pas sauvegardés par le navigateur.') };
+  missionFeedback = { mission: activeMission, target: target.id, type: 'success', message: 'Bravo ! ' + (awarded > 0 ? '+10 points. ' : '') + item.explanation + (storageAvailable ? '' : ' Attention : ces points ne sont pas sauvegardés par le navigateur.') };
   renderCurrent(false);
-  const next = byClass('drag-item', main).find(button => !button.disabled) || byId('finish-mission');
-  if (next) next.focus({ preventScroll: true });
 }
 
 function finishMission(id) {
@@ -1284,7 +1322,6 @@ function finishMission(id) {
   if (correctCount(id) !== MISSIONS[id].items.length) { notify('Associe correctement tous les éléments avant de terminer la mission.', 'error'); return; }
   state.missions[id].completed = true;
   persist();
-  selectedItem = null;
   missionFeedback = null;
   renderCurrent(false);
   openDialog('MISSION ACCOMPLIE !', [
@@ -1477,7 +1514,6 @@ function resetProgress() {
     state.profile = profile;
     state.settings = settings;
     quizRun = null;
-    selectedItem = null;
     missionFeedback = null;
     locationBusy = false;
     ++geoRequestId;
@@ -1802,19 +1838,6 @@ document.addEventListener('click', event => {
   if (!target) return;
   if (!byId('site-header').contains(target)) closeMobileMenu();
 
-  const source = upData(target, 'dragItem');
-  if (source) {
-    if (Date.now() < suppressClickUntil && event.detail !== 0) return;
-    if (!source.disabled) selectItem(Number(source.dataset.mission), source.dataset.dragItem);
-    return;
-  }
-  const zone = upData(target, 'dropTarget');
-  if (zone) {
-    const id = Number(zone.dataset.mission);
-    if (selectedItem && selectedItem.mission === id) tryDrop(id, selectedItem.id, zone.dataset.dropTarget);
-    else if (route === 'mission' && canAccessMission(id)) notify('Sélectionne d’abord un élément à gauche, puis choisis sa destination.');
-    return;
-  }
   const marker = upData(target, 'stadium');
   if (marker) { selectStadium(marker.dataset.mode, marker.dataset.stadium); return; }
   const stadiumClear = upData(target, 'stadiumClear');
@@ -1885,99 +1908,6 @@ document.addEventListener('input', event => {
   }
 });
 
-// Glisser-déposer natif (souris) + glisser au doigt et « toucher puis placer » (écrans tactiles).
-const clearDragOver = except => byClass('drag-over').forEach(node => { if (node !== except) node.classList.remove('drag-over'); });
-
-document.addEventListener('dragstart', event => {
-  const source = upData(eventElement(event), 'dragItem');
-  if (!source) return;
-  const id = Number(source.dataset.mission);
-  if (source.disabled || route !== 'mission' || !state.profile || activeMission !== id || !canAccessMission(id) || !event.dataTransfer) { event.preventDefault(); return; }
-  selectedItem = { mission: id, id: source.dataset.dragItem };
-  event.dataTransfer.setData('text/plain', 'fj:' + id + ':' + source.dataset.dragItem);
-  event.dataTransfer.effectAllowed = 'move';
-  source.classList.add('dragging');
-});
-
-document.addEventListener('dragover', event => {
-  const zone = upData(eventElement(event), 'dropTarget');
-  if (!zone || route !== 'mission' || !selectedItem || selectedItem.mission !== activeMission) return;
-  event.preventDefault();
-  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-  clearDragOver(zone);
-  zone.classList.add('drag-over');
-});
-
-document.addEventListener('dragleave', event => {
-  const zone = upData(eventElement(event), 'dropTarget');
-  if (zone && !zone.contains(event.relatedTarget)) zone.classList.remove('drag-over');
-});
-
-document.addEventListener('drop', event => {
-  const zone = upData(eventElement(event), 'dropTarget');
-  if (!zone || !event.dataTransfer) return;
-  event.preventDefault();
-  zone.classList.remove('drag-over');
-  const data = event.dataTransfer.getData('text/plain').match(/^fj:([0-4]):([a-z-]+)$/);
-  if (!data || Number(data[1]) !== Number(zone.dataset.mission)) return;
-  tryDrop(Number(data[1]), data[2], zone.dataset.dropTarget);
-});
-
-document.addEventListener('dragend', () => {
-  byClass('dragging').forEach(node => node.classList.remove('dragging'));
-  clearDragOver(null);
-});
-
-function cleanupTouchDrag() {
-  if (!touchDrag) return;
-  touchDrag.source.classList.remove('dragging');
-  touchDrag.source.classList.toggle('selected', !!(selectedItem && selectedItem.id === touchDrag.item && selectedItem.mission === touchDrag.mission));
-  try { touchDrag.source.releasePointerCapture(touchDrag.pointerId); } catch (error) { /* La capture peut déjà être terminée. */ }
-  clearDragOver(null);
-  touchDrag = null;
-}
-
-const zoneAtPoint = (x, y) => upData(document.elementFromPoint(x, y), 'dropTarget');
-
-document.addEventListener('pointerdown', event => {
-  if (event.pointerType === 'mouse' || appDialog.open) return;
-  const source = upData(eventElement(event), 'dragItem');
-  if (!source || source.disabled || route !== 'mission' || !state.profile || !canAccessMission(Number(source.dataset.mission))) return;
-  event.preventDefault();
-  cleanupTouchDrag();
-  touchDrag = { source, mission: Number(source.dataset.mission), item: source.dataset.dragItem, pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
-  source.classList.add('selected');
-  try { source.setPointerCapture(event.pointerId); } catch (error) { /* La sélection au toucher reste possible. */ }
-}, { passive: false });
-
-document.addEventListener('pointermove', event => {
-  if (touchDrag && event.pointerId === touchDrag.pointerId) {
-    if (!touchDrag.moved && Math.hypot(event.clientX - touchDrag.x, event.clientY - touchDrag.y) > 8) {
-      touchDrag.moved = true;
-      touchDrag.source.classList.add('dragging');
-    }
-    if (touchDrag.moved) {
-      event.preventDefault();
-      const zone = zoneAtPoint(event.clientX, event.clientY);
-      clearDragOver(zone);
-      if (zone && Number(zone.dataset.mission) === touchDrag.mission) zone.classList.add('drag-over');
-    }
-  }
-}, { passive: false });
-
-document.addEventListener('pointerup', event => {
-  if (!touchDrag || event.pointerId !== touchDrag.pointerId) return;
-  const drag = touchDrag;
-  const zone = zoneAtPoint(event.clientX, event.clientY);
-  event.preventDefault();
-  suppressClickUntil = Date.now() + 450;
-  cleanupTouchDrag();
-  if (drag.moved && zone && Number(zone.dataset.mission) === drag.mission) tryDrop(drag.mission, drag.item, zone.dataset.dropTarget);
-  else selectItem(drag.mission, drag.item);
-}, { passive: false });
-
-document.addEventListener('pointercancel', cleanupTouchDrag);
-
 document.addEventListener('keydown', event => {
   if (appDialog.open) return;
   if (event.key === 'Escape' && closeMobileMenu(true)) { event.preventDefault(); return; }
@@ -1988,11 +1918,6 @@ document.addEventListener('keydown', event => {
   if (route === 'hangman' && /^[a-zA-Z]$/.test(event.key)) {
     event.preventDefault();
     if (!event.repeat) guessLetter(event.key.toUpperCase());
-  } else if (route === 'mission' && event.key === 'Escape' && selectedItem) {
-    const item = selectedItem.id;
-    selectedItem = null;
-    renderCurrent(false);
-    focusById('drag-' + item);
   } else if (route === 'quiz' && quizOption && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
     event.preventDefault();
     const direction = ['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 1;
@@ -2014,14 +1939,12 @@ window.addEventListener('hashchange', () => {
 });
 window.addEventListener('storage', event => {
   if (event.key !== STORAGE_KEY && event.key !== null) return;
-  cleanupTouchDrag();
   closeDialog();
   const oldQuizClaimed = state.quiz.claimed;
   state = readState();
   if (!state.settings.musicEnabled && musicPlaying) pauseMusic(false);
   if (!canAccessQuiz() || (!oldQuizClaimed && state.quiz.claimed)) quizRun = null;
   applySettings();
-  selectedItem = null;
   missionFeedback = null;
   renderCurrent(false);
   syncHistory();

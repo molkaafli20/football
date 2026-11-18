@@ -829,3 +829,11 @@ html.brightness-120 { --brightness: 1.2; }
   .drag-image { width: 40px; height: 40px; }
   .activity-sorting .drop-zone { min-height: 120px; }
 }
+
+/* ---------- 7. Drag & Drop du cours : éléments placés dans leur zone (appendChild) ---------- */
+.drag-item[draggable="true"] { cursor: grab; }
+.drag-item[draggable="true"]:active { cursor: grabbing; }
+.activity .zone-answers .drag-item { width: auto; min-height: 0; flex-direction: row; gap: 6px; padding: 5px 9px; opacity: 1; border-color: rgba(190, 246, 91, .35); background: var(--bg); text-align: left; }
+.activity .zone-answers .drag-item span { flex: 0 1 auto; font-size: 10px; color: var(--accent); }
+.activity .zone-answers .drag-item > .icon:first-child, .activity .zone-answers .drag-image { width: 22px; height: 22px; }
+.activity .zone-answers .drag-handle { width: 11px; height: 11px; color: var(--accent); }
