@@ -11,7 +11,7 @@
    1. DONNÉES DU JEU : missions, questions du quiz, mots du pendu, badges
    ========================================================================== */
 // Web Storage (cours) : chaque information a sa propre clé dans le localStorage.
-const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'stade', 'volume', 'musique', 'mode', 'luminosite',
+const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'stade', 'volume', 'mode', 'luminosite',
   'latitude', 'longitude', 'precision', 'datePosition',
   'dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu', 'dateDernierPendu', 'progression'];
 // Score du quiz : sessionStorage (effacé à la fermeture de l'onglet) avec les clés
@@ -166,7 +166,7 @@ const STADIUMS = [
 function freshState() {
   return {
     version: 1, profile: null,
-    settings: { volume: .35, musicEnabled: false, theme: 'dark', brightness: 100, location: null },
+    settings: { volume: .35, theme: 'dark', brightness: 100, location: null },
     missions: MISSIONS.map(() => ({ answers: {}, completed: false, score: 0 })),
     quiz: { claimed: false, firstScore: null, lastScore: null, bestScore: null, lastAnswers: [], attempts: 0, completedAt: null },
     hangman: { game: null, lastResult: null, bonusAwarded: false },
@@ -246,7 +246,6 @@ function normalizeState(raw) {
     if (typeof r.volume === 'number' && Number.isFinite(r.volume)) s.settings.volume = clamp(r.volume, 0, 1);
     if (typeof r.brightness === 'number' && Number.isFinite(r.brightness)) s.settings.brightness = clamp(Math.round(r.brightness), 60, 120);
     s.settings.theme = r.theme === 'light' ? 'light' : 'dark';
-    s.settings.musicEnabled = r.musicEnabled === true;
     const loc = r.location;
     if (isObject(loc) && typeof loc.latitude === 'number' && typeof loc.longitude === 'number' && Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude) && Math.abs(loc.latitude) <= 90 && Math.abs(loc.longitude) <= 180) {
       s.settings.location = { latitude: loc.latitude, longitude: loc.longitude, accuracy: Number.isFinite(loc.accuracy) ? Math.max(0, loc.accuracy) : null, timestamp: Number.isFinite(loc.timestamp) ? loc.timestamp : null };
@@ -333,8 +332,7 @@ function readState() {
   raw.settings = {
     volume: localStorage.getItem('volume') === null ? .35 : Number(localStorage.getItem('volume')),
     brightness: localStorage.getItem('luminosite') === null ? 100 : Number(localStorage.getItem('luminosite')),
-    theme: localStorage.getItem('mode'),
-    musicEnabled: localStorage.getItem('musique') === 'oui'
+    theme: localStorage.getItem('mode')
   };
   if (localStorage.getItem('latitude') !== null) {
     raw.settings.location = {
@@ -374,13 +372,6 @@ let toastTimer = null;
 let locationBusy = false;
 let locationMessage = null;
 let musicPlaying = false;
-let audioContext = null;
-let masterGain = null;
-let audioTimer = null;
-let audioBeat = 0;
-let nextBeatTime = 0;
-let musicStarting = false;
-const activeAudioNodes = new Set();
 const main = document.getElementById('main-content');
 const appDialog = document.getElementById('app-dialog');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -481,7 +472,6 @@ function saveState(s) {
     ['pseudo', 'nom', 'prenom', 'age', 'stade'].forEach(key => localStorage.removeItem(key));
   }
   localStorage.setItem('volume', s.settings.volume);
-  localStorage.setItem('musique', s.settings.musicEnabled ? 'oui' : 'non');
   localStorage.setItem('mode', s.settings.theme);
   localStorage.setItem('luminosite', s.settings.brightness);
   const loc = s.settings.location;
@@ -523,6 +513,8 @@ function persist() {
 }
 
 function updateStorageStatus() {
+  const list = document.getElementById('stored-data');
+  if (list) setContent(list, storedDataItems());
   byClass('storage-status').forEach(node => {
     node.textContent = storageAvailable ? (state.profile ? 'Progression sauvegardée sur cet appareil' : 'Projet éducatif · 2026') : 'Sauvegarde indisponible';
   });
@@ -544,7 +536,8 @@ function applySettings() {
   listOf(root.classList).filter(name => name.startsWith('brightness-')).forEach(name => root.classList.remove(name));
   root.classList.add('brightness-' + clamp(Math.round(state.settings.brightness / 5) * 5, 60, 120));
   byId('meta-theme-color').setAttribute('content', state.settings.theme === 'dark' ? '#0b1217' : '#f1f5f0');
-  if (masterGain && audioContext && audioContext.state !== 'closed') masterGain.gain.setTargetAtTime(state.settings.volume * .42, audioContext.currentTime, .04);
+  const audio = document.getElementById('musique');
+  if (audio) audio.volume = state.settings.volume;
 }
 function getHangmanStatus(game) {
   if (!game) return { errors: 0, won: false, lost: false, finished: false };
@@ -575,8 +568,7 @@ const HANGMAN_PARTS = [
   ['path', { d: 'm151 164-28 40' }], ['path', { d: 'm151 164 28 40' }]
 ];
 
-const audioStatusText = () => musicPlaying ? 'La bande-son de ton aventure' : 'Ambiance originale · Lecture manuelle';
-const musicHelpText = () => musicPlaying ? 'Lecture en cours. Fais vibrer le vestiaire.' : state.settings.musicEnabled ? 'Préférence activée. Utilise la lecture en haut pour reprendre.' : 'Une composition originale, lancée seulement avec ton accord.';
+const audioStatusText = () => musicPlaying ? 'La bande-son de ton aventure' : 'Musique d’ambiance · Lecture manuelle';
 const initialsOf = profile => ([...profile.firstName][0] + [...profile.lastName][0]).toUpperCase();
 const eyebrow = text => el('div', { className: 'eyebrow' }, text);
 
@@ -607,7 +599,6 @@ function renderHeader() {
 
 function profileForm(mode) {
   const p = mode === 'profile' ? state.profile : { firstName: '', lastName: '', nickname: '', age: '', stadium: '' };
-  if (p.stadium) discoveredStadiums.add(p.stadium);
   return el('form', { id: mode + '-form', dataset: { form: mode }, novalidate: true },
     el('p', { className: 'form-summary', id: mode + '-summary', role: 'alert', hidden: true }),
     el('div', { className: 'form-grid' }, PROFILE_FIELDS.map(([name, label, type, placeholder, autocomplete]) => {
@@ -622,7 +613,7 @@ function profileForm(mode) {
         el('input', inputProps),
         el('span', { id: `${mode}-${name}-error`, className: 'field-error' }));
     })),
-    renderStadiumMap(mode, p.stadium || ''),
+    mode === 'register' ? renderStadiumMap(mode, '') : el('input', { type: 'hidden', id: 'profile-stadium', name: 'stadium', value: p.stadium || '' }),
     el('div', { className: 'form-bottom' },
       el('span', { className: 'privacy-note' }, icon('shield'), mode === 'profile' ? 'Ta progression reste inchangée.' : 'Ton profil reste sur cet appareil.'),
       el('button', { type: 'submit', className: 'button' }, mode === 'profile' ? 'ENREGISTRER MON PROFIL' : 'CRÉER MON JOUEUR', icon(mode === 'profile' ? 'check' : 'arrow'))));
@@ -746,7 +737,7 @@ function renderAudioPlayer() {
       icon('volume'),
       el('input', { id: 'home-volume', type: 'range', min: 0, max: 100, step: 1, value: volume, className: 'js-volume-input', dataset: { setting: 'volume' }, 'aria-label': 'Volume de la musique' }),
       el('span', { className: 'volume-value js-volume-value' }, volume + ' %')),
-    el('p', { className: 'audio-disclaimer' }, 'Composition synthétisée sur ton appareil. Aucun son sans ton accord.'));
+    el('p', { className: 'audio-disclaimer' }, 'Fichier audio/road-to-glory.mp3 · lecture uniquement quand tu cliques.'));
 }
 
 function renderHome() {
@@ -1088,69 +1079,76 @@ function renderDashboard() {
       }))));
 }
 
+// Liste des données du localStorage, parcourue avec length et key(i) comme dans le cours.
+function storedDataItems() {
+  const items = [];
+  if (storageSupported()) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!LOCAL_KEYS.includes(key)) continue;
+      const value = key === 'progression' ? 'missions, quiz et partie de pendu en cours' : localStorage.getItem(key);
+      items.push({ key, item: el('li', null, el('strong', null, key + ' : '), value) });
+    }
+  }
+  items.sort((a, b) => LOCAL_KEYS.indexOf(a.key) - LOCAL_KEYS.indexOf(b.key));
+  return items.length ? items.map(entry => entry.item) : el('li', null, 'Aucune donnée enregistrée.');
+}
+
 function renderSettings() {
   const loc = state.settings.location;
   const volume = Math.round(state.settings.volume * 100);
+  const stadium = stadiumById(state.profile.stadium);
+  const group = (title, ...content) => el('section', { className: 'settings-group' }, el('h2', { className: 'display' }, title), content);
 
-  const identityGroup = el('section', { className: 'settings-group' }, el('h2', { className: 'display' }, 'MON IDENTITÉ'), profileForm('profile'));
+  const playerGroup = group('MON JOUEUR',
+    profileForm('profile'),
+    stadium ? el('p', { className: 'setting-help wide' }, 'Stade de cœur : ' + stadium.name + ' (' + stadium.city + ')') : null);
 
-  const locationGroup = el('section', { className: 'settings-group' },
-    el('h2', { className: 'display' }, 'MA POSITION'),
-    el('p', null, 'Facultatif. Ta position n’est demandée qu’avec ton accord et reste sur cet appareil. Cette fonction nécessite HTTPS ou localhost.'),
+  const locationGroup = group('MA POSITION',
     el('div', { className: 'location-actions' },
-      el('button', { type: 'button', className: 'button secondary', dataset: { action: 'geolocation' }, disabled: locationBusy, 'aria-busy': locationBusy ? 'true' : null },
+      el('button', { type: 'button', className: 'button secondary', dataset: { action: 'geolocation' }, disabled: locationBusy },
         icon('location'), locationBusy ? 'LOCALISATION EN COURS...' : loc ? 'ACTUALISER MA POSITION' : 'AUTORISER MA LOCALISATION'),
-      loc ? el('button', { type: 'button', className: 'text-button', dataset: { action: 'clear-location' } }, 'Effacer ma position') : null),
-    loc ? el('p', { className: 'location-output success' },
-      `Latitude : ${loc.latitude.toFixed(4)} · Longitude : ${loc.longitude.toFixed(4)}`,
-      loc.accuracy !== null ? [el('br'), 'Précision estimée : ' + Math.round(loc.accuracy) + ' m'] : null) : null,
-    el('p', { id: 'location-output', className: 'location-output' + (locationMessage && locationMessage.type ? ' ' + locationMessage.type : ''), role: 'status' },
-      locationMessage ? locationMessage.text : 'Aucune demande automatique, aucun suivi en arrière-plan.'));
+      loc ? el('button', { type: 'button', className: 'text-button', dataset: { action: 'clear-location' } }, 'Effacer') : null),
+    loc ? el('p', { className: 'location-output success' }, `Latitude : ${loc.latitude.toFixed(4)} · Longitude : ${loc.longitude.toFixed(4)}`) : null,
+    locationMessage ? el('p', { id: 'location-output', className: 'location-output' + (locationMessage.type ? ' ' + locationMessage.type : ''), role: 'status' }, locationMessage.text) : null);
 
-  const soundGroup = el('section', { className: 'settings-group' },
-    el('h2', { className: 'display' }, 'L’AMBIANCE SONORE'),
+  const musicGroup = group('MUSIQUE',
     el('div', { className: 'setting-row' },
-      el('div', null, el('span', { className: 'setting-label', id: 'music-setting-label' }, 'Musique d’ambiance'), el('p', { className: 'setting-help js-music-help' }, musicHelpText())),
-      el('button', { type: 'button', className: 'toggle js-music-toggle', role: 'switch', 'aria-checked': String(state.settings.musicEnabled), 'aria-labelledby': 'music-setting-label', dataset: { action: 'music-preference' } })),
+      el('span', { className: 'setting-label' }, 'Road to Glory'),
+      el('button', { type: 'button', className: 'audio-play js-audio-play', dataset: { action: 'music' }, 'aria-label': musicPlaying ? 'Mettre la musique en pause' : 'Lire la musique' }, icon(musicPlaying ? 'pause' : 'play'))),
     el('div', { className: 'setting-row' },
       el('label', { className: 'setting-label', for: 'settings-volume' }, 'Volume'),
       el('div', { className: 'setting-range' },
         el('input', { type: 'range', id: 'settings-volume', min: 0, max: 100, value: volume, className: 'js-volume-input', dataset: { setting: 'volume' } }),
         el('span', { className: 'volume-value js-volume-value' }, volume + ' %'))));
 
-  const visualGroup = el('section', { className: 'settings-group' },
-    el('h2', { className: 'display' }, 'LE CONFORT VISUEL'),
+  const displayGroup = group('AFFICHAGE',
     el('div', { className: 'setting-row' },
-      el('span', { className: 'setting-label', id: 'theme-label' }, 'Apparence'),
+      el('span', { className: 'setting-label', id: 'theme-label' }, 'Mode'),
       el('div', { className: 'theme-control', role: 'group', 'aria-labelledby': 'theme-label' },
         [['dark', 'moon', 'Sombre'], ['light', 'sun', 'Clair']].map(([choice, symbol, label]) => el('button', {
           type: 'button', className: 'js-theme-choice' + (state.settings.theme === choice ? ' active' : ''),
           dataset: { action: 'set-theme', themeChoice: choice }, 'aria-pressed': String(state.settings.theme === choice)
         }, icon(symbol), label)))),
     el('div', { className: 'setting-row' },
-      el('div', null, el('label', { className: 'setting-label', for: 'brightness-range' }, 'Luminosité'), el('p', { className: 'setting-help' }, 'Ajuste l’intensité de l’interface, de 60 à 120 %.')),
+      el('label', { className: 'setting-label', for: 'brightness-range' }, 'Luminosité'),
       el('div', { className: 'setting-range' },
         el('input', { type: 'range', id: 'brightness-range', min: 60, max: 120, step: 5, value: state.settings.brightness, dataset: { setting: 'brightness' } }),
         el('span', { className: 'volume-value', id: 'brightness-value' }, state.settings.brightness + ' %'))));
 
-  const dataGroup = el('section', { className: 'settings-group' },
-    el('h2', { className: 'display' }, 'MES DONNÉES'),
-    el('p', null, 'Profil, scores, badges et réglages sont conservés dans le stockage local. Le résultat du quiz est aussi enregistré dans le stockage de session.'),
-    el('button', { type: 'button', className: 'button secondary', dataset: { action: 'diagnostics' } }, icon('shield'), 'VÉRIFIER MA SAUVEGARDE'),
-    el('p', { className: 'diagnostic-result', id: 'diagnostic-result', role: 'status' }),
-    el('div', { className: 'danger-zone' },
-      el('p', { className: 'setting-help wide' }, 'Repartir de zéro efface les missions, les points, le quiz, le Pendu et les badges. Ton profil et tes réglages sont conservés.'),
-      el('button', { type: 'button', className: 'text-button danger-text', dataset: { action: 'reset' } }, icon('replay'), 'Réinitialiser mon parcours'),
-      el('button', { type: 'button', className: 'text-button danger-text', dataset: { action: 'clear-all' } }, icon('close'), 'Supprimer mon joueur et toutes mes données')));
+  const dataGroup = group('MES DONNÉES',
+    el('p', { className: 'setting-help wide' }, 'Ce qui est enregistré dans le localStorage de ce navigateur :'),
+    el('ul', { className: 'stored-data', id: 'stored-data' }, storedDataItems()),
+    el('button', { type: 'button', className: 'text-button danger-text', dataset: { action: 'clear-all' } }, icon('close'), 'Supprimer toutes mes données'));
 
   return el('div', { className: 'container page' },
     el('div', { className: 'page-intro' },
-      eyebrow('LES RÉGLAGES DU VESTIAIRE'),
-      el('h1', { className: 'display' }, 'TON JOUEUR.', el('br'), el('span', { className: 'accent' }, 'TES RÈGLES.')),
-      el('p', null, 'Personnalise ton expérience. Tes préférences sont enregistrées automatiquement sur cet appareil.')),
+      eyebrow('PARAMÈTRES'),
+      el('h1', { className: 'display' }, 'TON JOUEUR.', el('br'), el('span', { className: 'accent' }, 'TES RÉGLAGES.')),
+      el('p', null, 'Chaque réglage est enregistré automatiquement sur cet appareil.')),
     el('div', { className: 'settings-layout' },
-      el('div', null, identityGroup, locationGroup),
-      el('div', null, soundGroup, visualGroup, dataGroup)));
+      el('div', null, playerGroup, locationGroup),
+      el('div', null, musicGroup, displayGroup, dataGroup)));
 }
 
 const RENDERERS = { home: renderHome, journey: renderJourney, mission: renderMission, quiz: renderQuiz, hangman: renderHangman, dashboard: renderDashboard, settings: renderSettings };
@@ -1592,7 +1590,7 @@ function showPosition(position) {
   if (!locationBusy || !state.profile) return;
   state.settings.location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy, timestamp: position.timestamp };
   const saved = persist();
-  showGeoMessage(saved ? 'Latitude : ' + position.coords.latitude.toFixed(4) + ' · Longitude : ' + position.coords.longitude.toFixed(4) + '. Position enregistrée sur cet appareil.' : 'Position obtenue pour cette visite, mais la sauvegarde locale est indisponible.', saved ? 'success' : 'error');
+  showGeoMessage(saved ? 'Position enregistrée sur cet appareil.' : 'Position obtenue pour cette visite, mais la sauvegarde locale est indisponible.', saved ? 'success' : 'error');
 }
 
 // Erreur : codes du cours (PERMISSION_DENIED, POSITION_UNAVAILABLE, TIMEOUT).
@@ -1631,7 +1629,7 @@ function clearAllData() {
       localStorage.clear();
       sessionStorage.clear();
     }
-    if (musicPlaying || musicStarting) pauseMusic(false);
+    pauseMusic();
     state = freshState();
     quizRun = null;
     missionFeedback = null;
@@ -1643,169 +1641,39 @@ function clearAllData() {
   }, true);
 }
 
-function resetProgress() {
-  if (!state.profile) return;
-  confirmAction('REPARTIR DE ZÉRO ?', 'Cette action est définitive : missions, points, quiz, parties de Pendu et badges seront effacés. Seuls ton profil et tes préférences seront conservés.', 'EFFACER MON PARCOURS', () => {
-    const profile = state.profile;
-    const settings = state.settings;
-    state = freshState();
-    state.profile = profile;
-    state.settings = settings;
-    quizRun = null;
-    missionFeedback = null;
-    locationBusy = false;
-    // Le sessionStorage ne contient que le score du quiz : on le vide avec clear().
-    const sessionCleared = storageSupported();
-    if (sessionCleared) sessionStorage.clear();
-    const saved = persist();
-    navigate('home');
-    notify(saved && sessionCleared ? 'Nouveau départ ! La mission 1 t’attend, ' + profile.nickname + '.' : 'Le parcours est remis à zéro ici, mais le navigateur a refusé une opération de stockage.', saved && sessionCleared ? 'success' : 'error');
-  }, true);
-}
-
 /* ==========================================================================
-   12. MUSIQUE D'AMBIANCE (générée avec Web Audio, sans fichier audio)
+   12. MUSIQUE D'AMBIANCE : balise <audio id="musique"> (fichier audio/road-to-glory.mp3)
    ========================================================================== */
-let musicRequestId = 0;
-let noiseBuffer = null;
-const beatDuration = 60 / 112;
+const musique = document.getElementById('musique');
 
-function trackAudioNode(node, connectedNodes = []) {
-  activeAudioNodes.add(node);
-  node.addEventListener('ended', () => {
-    activeAudioNodes.delete(node);
-    try { node.disconnect(); connectedNodes.forEach(n => n.disconnect()); } catch (error) { /* Déjà déconnecté lors de la pause. */ }
-  }, { once: true });
-}
-function scheduleTone(midi, time, duration, type, volume, cutoff = 2400) {
-  const oscillator = audioContext.createOscillator();
-  const envelope = audioContext.createGain();
-  const filter = audioContext.createBiquadFilter();
-  oscillator.type = type;
-  oscillator.frequency.setValueAtTime(440 * Math.pow(2, (midi - 69) / 12), time);
-  filter.type = 'lowpass';
-  filter.frequency.value = cutoff;
-  envelope.gain.setValueAtTime(.0001, time);
-  envelope.gain.exponentialRampToValueAtTime(Math.max(.0002, volume), time + .025);
-  envelope.gain.exponentialRampToValueAtTime(.0001, time + duration);
-  oscillator.connect(filter);
-  filter.connect(envelope);
-  envelope.connect(masterGain);
-  trackAudioNode(oscillator, [filter, envelope]);
-  oscillator.start(time);
-  oscillator.stop(time + duration + .025);
+// Lecture : dans les navigateurs récents, play() renvoie une promesse, refusée si le son est bloqué.
+function playMusic() {
+  musique.volume = state.settings.volume;
+  const lecture = musique.play();
+  if (lecture) lecture.catch(() => notify('Le navigateur a bloqué la lecture. Clique de nouveau sur le bouton de lecture.', 'error'));
 }
 
-function scheduleKick(time) {
-  const oscillator = audioContext.createOscillator();
-  const envelope = audioContext.createGain();
-  oscillator.frequency.setValueAtTime(120, time);
-  oscillator.frequency.exponentialRampToValueAtTime(42, time + .14);
-  envelope.gain.setValueAtTime(.48, time);
-  envelope.gain.exponentialRampToValueAtTime(.0001, time + .2);
-  oscillator.connect(envelope);
-  envelope.connect(masterGain);
-  trackAudioNode(oscillator, [envelope]);
-  oscillator.start(time);
-  oscillator.stop(time + .22);
+function pauseMusic() {
+  musique.pause();
 }
 
-function scheduleNoise(time, snare = false) {
-  const source = audioContext.createBufferSource();
-  const envelope = audioContext.createGain();
-  const filter = audioContext.createBiquadFilter();
-  source.buffer = noiseBuffer;
-  filter.type = 'highpass';
-  filter.frequency.value = snare ? 1200 : 7000;
-  envelope.gain.setValueAtTime(snare ? .17 : .07, time);
-  envelope.gain.exponentialRampToValueAtTime(.0001, time + (snare ? .12 : .045));
-  source.connect(filter);
-  filter.connect(envelope);
-  envelope.connect(masterGain);
-  trackAudioNode(source, [filter, envelope]);
-  source.start(time);
-  source.stop(time + .14);
+function toggleMusic() {
+  if (musique.paused) playMusic();
+  else pauseMusic();
 }
 
-function scheduleMusicBeat(beat, time) {
-  const chords = [[50, 53, 57], [46, 50, 53], [53, 57, 60], [48, 52, 55]];
-  const chord = chords[Math.floor(beat / 4) % 4];
-  const melody = [74, 77, 81, 77, 74, 77, 79, 77, 72, 77, 81, 84, 79, 76, 72, 76];
-  if (beat % 4 === 0) chord.forEach(note => scheduleTone(note + 12, time, beatDuration * 3.95, 'triangle', .085, 1400));
-  scheduleTone(chord[0] - 12, time, beatDuration * .8, 'triangle', .28, 650);
-  scheduleTone(chord[beat % 3] + 24, time, beatDuration * .6, 'sine', .075);
-  scheduleTone(chord[(beat + 1) % 3] + 24, time + beatDuration / 2, beatDuration * .4, 'sine', .06);
-  if (beat >= 16) scheduleTone(melody[beat % 16], time, beatDuration * .85, 'triangle', .11, 2000);
-  if (beat % 2 === 0) scheduleKick(time);
-  else scheduleNoise(time, true);
-  scheduleNoise(time + beatDuration / 2);
-}
-
-function musicScheduler() {
-  if (!musicPlaying || !audioContext || audioContext.state !== 'running') return;
-  if (nextBeatTime < audioContext.currentTime - .3) nextBeatTime = audioContext.currentTime + .04;
-  while (nextBeatTime < audioContext.currentTime + .16) {
-    scheduleMusicBeat(audioBeat, nextBeatTime);
-    nextBeatTime += beatDuration;
-    audioBeat = (audioBeat + 1) % 32;
-  }
-}
-
-async function playMusic() {
-  if (musicPlaying || musicStarting) return;
-  musicStarting = true;
-  const request = ++musicRequestId;
-  try {
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) throw new Error('Web Audio unsupported');
-    if (!audioContext || audioContext.state === 'closed') {
-      audioContext = new AudioContextClass();
-      masterGain = audioContext.createGain();
-      masterGain.gain.value = state.settings.volume * .42;
-      masterGain.connect(audioContext.destination);
-      noiseBuffer = audioContext.createBuffer(1, Math.ceil(audioContext.sampleRate * .15), audioContext.sampleRate);
-      const samples = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < samples.length; i++) samples[i] = Math.random() * 2 - 1;
-      audioContext.addEventListener('statechange', () => {
-        if (audioContext.state !== 'running' && musicPlaying) {
-          pauseMusic(false);
-        }
-      });
-    }
-    await audioContext.resume();
-    if (request !== musicRequestId) return;
-    if (audioContext.state !== 'running') throw new Error('Playback blocked');
-    document.getElementById('football-video')?.pause();
-    musicPlaying = true;
-    state.settings.musicEnabled = true;
-    masterGain.gain.setValueAtTime(state.settings.volume * .42, audioContext.currentTime);
-    nextBeatTime = audioContext.currentTime + .045;
-    audioBeat = 0;
-    musicScheduler();
-    clearInterval(audioTimer);
-    audioTimer = setInterval(musicScheduler, 35);
-    persist();
-    refreshAudioUI();
-  } catch (error) {
-    pauseMusic(false);
-    state.settings.musicEnabled = false;
-    persist();
-    refreshAudioUI();
-    notify('La lecture audio n’est pas disponible ou a été bloquée par le navigateur. Aucun son ne joue. Réessaie après une action sur Lecture.', 'error');
-  } finally { musicStarting = false; }
-}
-
-function pauseMusic(savePreference = true) {
-  ++musicRequestId;
-  clearInterval(audioTimer);
-  audioTimer = null;
-  musicPlaying = false;
-  activeAudioNodes.forEach(node => { try { node.stop(); } catch (error) { /* A scheduled note may already have ended. */ } });
-  activeAudioNodes.clear();
-  if (audioContext && audioContext.state === 'running') audioContext.suspend().catch(() => {});
-  if (savePreference) { state.settings.musicEnabled = false; persist(); }
+// Les événements play / pause de la balise mettent à jour tous les boutons.
+musique.addEventListener('play', () => {
+  const video = document.getElementById('football-video');
+  if (video) video.pause();
+  musicPlaying = true;
   refreshAudioUI();
-}
+});
+musique.addEventListener('pause', () => {
+  musicPlaying = false;
+  refreshAudioUI();
+});
+musique.addEventListener('error', () => notify('Le fichier audio/road-to-glory.mp3 est introuvable.', 'error'));
 
 function refreshAudioUI() {
   renderHeader();
@@ -1815,8 +1683,6 @@ function refreshAudioUI() {
   });
   byClass('js-equalizer').forEach(node => node.classList.toggle('is-playing', musicPlaying));
   byClass('js-audio-status').forEach(node => { node.textContent = audioStatusText(); });
-  byClass('js-music-toggle').forEach(node => node.setAttribute('aria-checked', String(state.settings.musicEnabled)));
-  byClass('js-music-help').forEach(node => { node.textContent = musicHelpText(); });
 }
 
 /* ==========================================================================
@@ -1844,7 +1710,7 @@ function attachMediaHandlers() {
     video.addEventListener('error', showVideoError);
     const source = video.getElementsByTagName('source')[0];
     if (source) source.addEventListener('error', showVideoError);
-    video.addEventListener('play', () => { if (musicPlaying || musicStarting) pauseMusic(false); });
+    video.addEventListener('play', () => { if (musicPlaying) pauseMusic(); });
     video.addEventListener('loadedmetadata', () => { const error = byId('video-error'); if (error) error.hidden = true; });
   }
 }
@@ -1877,100 +1743,7 @@ function showCredits() {
 }
 
 /* ==========================================================================
-   14. CONTRÔLES INTERNES (vérifient les scores sans modifier la sauvegarde)
-   ========================================================================== */
-function runSelfTests() {
-  const results = [];
-  const test = (name, condition) => results.push({ name, passed: Boolean(condition) });
-  try {
-    test('5 missions, un seul quiz de 10 questions', MISSIONS.length === 5 && QUESTIONS.length === 10 && QUESTIONS.every(q => q.options.length === 4 && q.correct >= 0 && q.correct < 4));
-    test('26 lettres et 10 mots', ALPHABET.length === 26 && new Set(ALPHABET).size === 26 && WORDS.length === 10);
-    test('Toutes les associations ont une destination', MISSIONS.every(m => m.items.every(item => m.targets.some(t => t.id === item.target)) && m.targets.every(t => m.items.filter(item => item.target === t.id).length === (t.capacity || 1))));
-    test('Stade de cœur : identifiant inconnu refusé', validateProfile({ firstName: 'Alex', lastName: 'Martin', nickname: 'Alex10', age: '18', stadium: 'faux' }).profile.stadium === '' && validateProfile({ firstName: 'Alex', lastName: 'Martin', nickname: 'Alex10', age: '18', stadium: 'camp-nou' }).profile.stadium === 'camp-nou');
-    test('Validation du profil', validateProfile({ firstName: 'Alex', lastName: 'Martin', nickname: 'Alex10', age: '18' }).valid && !validateProfile({ firstName: '', lastName: 'Martin', nickname: 'a', age: '18.5' }).valid);
-    const initial = deriveState(freshState());
-    test('Verrouillage initial (quiz ouvert)', canAccessMission(0, initial) && !canAccessMission(1, initial) && canAccessQuiz(initial) && initial.totalPoints === 0);
-    initial.missions[1].completed = true;
-    MISSIONS[1].items.forEach(item => { initial.missions[1].answers[item.id] = item.target; });
-    deriveState(initial);
-    test('Validation forcee refusee', !initial.missions[1].completed && initial.missions[1].score === 0);
-    const s = freshState();
-    s.missions[0].answers.ball = 'wrong-answer';
-    deriveState(s);
-    test('Mauvaise reponse sans points', s.totalPoints === 0 && Object.keys(s.missions[0].answers).length === 0);
-    let expected = 0;
-    MISSIONS.forEach((m, index) => {
-      m.items.forEach(item => { s.missions[index].answers[item.id] = item.target; });
-      deriveState(s);
-      test('Mission ' + (index + 1) + ' : associations', s.totalPoints === expected + m.items.length * 10);
-      s.missions[index].completed = true;
-      expected += m.items.length * 10 + 100;
-      deriveState(s);
-      test('Mission ' + (index + 1) + ' : validation et deblocage', s.totalPoints === expected && completedCount(s) === index + 1 && (index === 4 || canAccessMission(index + 1, s)));
-    });
-    deriveState(s);
-    test('Pas de double bonus de mission', s.totalPoints === expected);
-    s.quiz.claimed = true;
-    s.quiz.firstScore = 9;
-    s.quiz.lastScore = 9;
-    s.quiz.bestScore = 9;
-    s.quiz.attempts = 1;
-    deriveState(s);
-    test('Bonus du quiz', s.totalPoints === expected + 90);
-    s.quiz.lastScore = 10;
-    s.quiz.bestScore = 10;
-    s.quiz.attempts = 2;
-    deriveState(s);
-    test('Nouvelle tentative sans double bonus', s.totalPoints === expected + 90);
-    s.hangman.bonusAwarded = true;
-    deriveState(s);
-    deriveState(s);
-    test('Bonus unique du Pendu', s.totalPoints === expected + 140);
-    const recovered = normalizeState({ ...s, totalPoints: 999999, rewards: { forged: 999999 }, unlockedMissions: [0, 1, 2, 3, 4] });
-    test('Score recalcule au chargement', recovered.totalPoints === expected + 140);
-    test('Six erreurs maximum', getHangmanStatus({ word: 'BUT', guesses: ['A', 'C', 'D', 'E', 'F', 'G'] }).lost);
-    test('Detection de victoire', getHangmanStatus({ word: 'BUT', guesses: ['B', 'U', 'T'] }).won);
-    const repaired = normalizeState({ hangman: { game: { word: 'BUT', guesses: ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I'], settled: true } } });
-    test('Sauvegarde du Pendu limitee a six erreurs', getHangmanStatus(repaired.hangman.game).errors === 6);
-    const settingsTest = normalizeState({ settings: { volume: 25, brightness: -10, theme: 'invalid' } });
-    test('Reglages hors limites corriges', settingsTest.settings.volume === 1 && settingsTest.settings.brightness === 60 && settingsTest.settings.theme === 'dark');
-    test('Badges conditionnels', s.badges.length === 7 && initial.badges.length === 0);
-    test('Donnees invalides recuperees', normalizeState(null).totalPoints === 0 && normalizeState({ missions: [null], profile: { age: 'oops' } }).profile === null);
-  } catch (error) { results.push({ name: 'Exception interne : ' + error.message, passed: false }); }
-  return { results, passed: results.filter(result => result.passed).length, total: results.length, failures: results.filter(result => !result.passed) };
-}
-
-function showDiagnostics() {
-  if (!state.profile) return;
-  const output = document.getElementById('diagnostic-result');
-  if (!output) return;
-  const checks = runSelfTests();
-  let localValid = false;
-  try {
-    if (persist()) {
-      const recovered = readState();
-      localValid = recovered.totalPoints === state.totalPoints && JSON.stringify(recovered.missions) === JSON.stringify(state.missions) && recovered.profile?.nickname === state.profile.nickname;
-    }
-  } catch (error) { localValid = false; }
-  const session = readQuizSession();
-  // Parcours du localStorage avec length et key(index), comme dans le cours.
-  const keys = [];
-  if (storageSupported()) {
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (LOCAL_KEYS.includes(key)) keys.push(key);
-    }
-  }
-  output.textContent = checks.passed + '/' + checks.total + ' contrôles internes réussis. ' + (localValid ? 'Sauvegarde locale relue : cohérente.' : 'Sauvegarde locale : indisponible ou incohérente.') + (session ? ' Score de cette session : ' + session.score + '/10, vérifié.' : ' Aucun quiz terminé dans cette session.') + ' ' + keys.length + ' clés dans le localStorage : ' + keys.join(', ') + '.';
-
-  const failed = checks.failures.length > 0 || !localValid;
-  output.classList.toggle('is-ok', !failed);
-  output.classList.toggle('is-ko', failed);
-  if (checks.failures.length) console.error('Football Journey - diagnostics', checks.failures);
-}
-
-/* ==========================================================================
-   15. ÉCOUTEURS D'ÉVÉNEMENTS (addEventListener uniquement, délégation sur document)
+   14. ÉCOUTEURS D'ÉVÉNEMENTS (addEventListener uniquement, délégation sur document)
    ========================================================================== */
 document.addEventListener('submit', event => {
   const form = findUp(eventElement(event), node => node.tagName === 'FORM' && node.dataset.form !== undefined);
@@ -2012,8 +1785,7 @@ document.addEventListener('click', event => {
     case 'finish-mission': finishMission(Number(button.dataset.id)); break;
     case 'next-mission': goToNextMission(Number(button.dataset.id)); break;
     case 'watch-video': watchVideo(); break;
-    case 'music': if (musicPlaying) pauseMusic(); else playMusic(); break;
-    case 'music-preference': if (state.settings.musicEnabled) pauseMusic(); else playMusic(); break;
+    case 'music': toggleMusic(); break;
     case 'theme': setTheme(state.settings.theme === 'dark' ? 'light' : 'dark'); break;
     case 'set-theme': setTheme(button.dataset.themeChoice); break;
     case 'menu': setMenuButton(button, byId('primary-nav').classList.toggle('open')); break;
@@ -2022,8 +1794,6 @@ document.addEventListener('click', event => {
     case 'hangman-replay': replayHangman(); break;
     case 'geolocation': getLocation(); break;
     case 'clear-location': clearLocation(); break;
-    case 'diagnostics': showDiagnostics(); break;
-    case 'reset': resetProgress(); break;
     case 'clear-all': clearAllData(); break;
     case 'credits': showCredits(); break;
     case 'close-dialog': closeDialog(); break;
@@ -2078,7 +1848,7 @@ appDialog.addEventListener('click', event => {
   if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeDialog();
 });
 appDialog.addEventListener('close', () => { if (!appDialog.open) dialogConfirm = null; });
-document.addEventListener('visibilitychange', () => { if (document.hidden && (musicPlaying || musicStarting)) pauseMusic(false); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && musicPlaying) pauseMusic(); });
 window.addEventListener('hashchange', () => {
   const requested = parseRouteHash();
   if (requested) navigate(requested.route, requested.missionId, false);
@@ -2091,7 +1861,6 @@ window.addEventListener('storage', event => {
   closeDialog();
   const oldQuizClaimed = state.quiz.claimed;
   state = readState();
-  if (!state.settings.musicEnabled && musicPlaying) pauseMusic(false);
   if (!canAccessQuiz() || (!oldQuizClaimed && state.quiz.claimed)) quizRun = null;
   applySettings();
   missionFeedback = null;
@@ -2101,7 +1870,7 @@ window.addEventListener('storage', event => {
 });
 
 /* ==========================================================================
-   16. DÉMARRAGE DU SITE
+   15. DÉMARRAGE DU SITE
    ========================================================================== */
 deriveState(state);
 applySettings();
@@ -2112,5 +1881,3 @@ if (state.profile && initialDestination) { route = initialDestination.route; act
 renderCurrent();
 syncHistory();
 if (loadWarning) notify(loadWarning, 'error');
-const bootChecks = runSelfTests();
-if (bootChecks.failures.length) console.error('Football Journey - internal checks', bootChecks.failures);
