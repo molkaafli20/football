@@ -24,12 +24,12 @@ script.js    → toute la logique, organisée en sections commentées
 | Partie | Contenu |
 | --- | --- |
 | Premier chargement | Formulaire nom, prénom, pseudo, âge (entier) avec validation + carte interactive des stades |
-| localStorage | Profil, volume audio, position (si autorisée), dernier score du pendu, mode sombre/clair, luminosité |
+| localStorage | Une clé par information : `pseudo`, `nom`, `prenom`, `age`, `stade`, `volume`, `musique`, `mode`, `luminosite`, `latitude`, `longitude`, `precision`, `dernierResultatPendu`, `dernierScorePendu`, `dernierMotPendu` + `progression` (missions, quiz, partie en cours) |
 | Accueil | Cartes CSS3 3D, animations CSS3, texte néon, vidéo, musique avec boutons personnalisés, bouton « Commencer mon voyage » |
 | Drag & Drop | 5 missions ; mission 2 : 6 images, 3 + 3, dans 2 zones, « Bravo ! » ou message d'erreur explicatif |
-| Quiz | 10 questions, score dans le sessionStorage, message « Bravo [pseudo], tu as réussi [X]% de ta mission ! » |
+| Quiz | 10 questions, score dans le sessionStorage (`scoreQuiz`, `reponsesQuiz`…), message « Bravo [pseudo], tu as réussi [X]% de ta mission ! » |
 | Pendu | Mot au hasard, mot en tirets, clavier de 26 lettres, 6 erreurs max, essais restants, dessin progressif, Rejouer, dernier résultat sauvegardé |
-| Paramètres | Thème, luminosité, volume, musique, profil, géolocalisation (avec accord), réinitialisation |
+| Paramètres | Thème, luminosité, volume, musique, profil, géolocalisation (avec accord), réinitialisation du parcours, suppression de toutes les données |
 
 ## Règles techniques respectées
 
@@ -40,3 +40,8 @@ script.js    → toute la logique, organisée en sections commentées
 - Pas de style en ligne : tout le style est dans `style.css`.
 - Drag & Drop selon la méthode du cours : `draggable="true"`, `dragstart` + `dataTransfer.setData()`,
   `dragover` + `preventDefault()`, `drop` + `getData()` + `getElementById()` + `appendChild()`, `dragend` + `clearData()`.
+- Web Storage selon le cours : test `typeof(Storage) !== "undefined"`, `setItem()`, `getItem()`, `removeItem()`,
+  `clear()`, `key(index)` et `length` (diagnostic des paramètres), événement `storage` entre onglets.
+- Géolocalisation selon le cours : `navigator.geolocation.getCurrentPosition(showPosition, showError, options)`
+  avec `maximumAge`, `timeout`, `enableHighAccuracy` et gestion des erreurs `PERMISSION_DENIED`,
+  `POSITION_UNAVAILABLE`, `TIMEOUT`.

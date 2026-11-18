@@ -10,8 +10,14 @@
 /* ==========================================================================
    1. DONNÉES DU JEU : missions, questions du quiz, mots du pendu, badges
    ========================================================================== */
-const STORAGE_KEY = 'footballJourney.v1';
-const SESSION_KEY = 'footballJourney.quizResult';
+// Web Storage (cours) : chaque information a sa propre clé dans le localStorage.
+const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'stade', 'volume', 'musique', 'mode', 'luminosite',
+  'latitude', 'longitude', 'precision', 'datePosition',
+  'dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu', 'dateDernierPendu', 'progression'];
+// Score du quiz : sessionStorage (effacé à la fermeture de l'onglet) avec les clés
+// scoreQuiz, bonnesReponsesQuiz, reponsesQuiz, pseudoQuiz et dateQuiz.
+// Ancienne version du projet : tout était rangé dans une seule clé (convertie au premier chargement).
+const OLD_STORAGE_KEY = 'footballJourney.v1';
 const WORDS = ['FOOTBALL', 'STADE', 'BALLON', 'GARDIEN', 'ARBITRE', 'BUT', 'JOUEUR', 'MATCH', 'COUPE', 'PENALTY'];
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const HERO_IMAGE = 'https://images.pexels.com/photos/36737326/pexels-photo-36737326.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1800';
@@ -295,21 +301,67 @@ function normalizeState(raw) {
 
 let loadWarning = '';
 let storageAvailable = true;
+
+// Test du cours : le navigateur supporte-t-il localStorage et sessionStorage ?
+function storageSupported() {
+  return typeof(Storage) !== 'undefined';
+}
+
+// Lecture de la sauvegarde avec getItem(), clé par clé.
 function readState() {
-  let saved;
-  try {
-    saved = localStorage.getItem(STORAGE_KEY);
-  } catch (error) {
+  if (!storageSupported()) {
     storageAvailable = false;
-    loadWarning = 'Le stockage local est bloqué par le navigateur. Tu peux jouer, mais ta progression ne sera pas conservée à la fermeture.';
+    loadWarning = 'Désolé, ton navigateur ne supporte pas le web storage : ta progression ne sera pas conservée.';
     return freshState();
   }
-  try {
-    return saved ? normalizeState(JSON.parse(saved)) : freshState();
-  } catch (error) {
-    loadWarning = 'La sauvegarde contient des données illisibles. Un parcours vierge a été ouvert pour te permettre de recommencer.';
-    return freshState();
+  const old = localStorage.getItem(OLD_STORAGE_KEY);
+  if (old !== null) {
+    localStorage.removeItem(OLD_STORAGE_KEY);
+    try {
+      const converted = normalizeState(JSON.parse(old));
+      saveState(converted);
+      return converted;
+    } catch (error) { /* ancienne sauvegarde illisible : on lit les nouvelles clés */ }
   }
+  const raw = {};
+  if (localStorage.getItem('pseudo') !== null) {
+    raw.profile = {
+      firstName: localStorage.getItem('prenom'), lastName: localStorage.getItem('nom'),
+      nickname: localStorage.getItem('pseudo'), age: localStorage.getItem('age'), stadium: localStorage.getItem('stade') || ''
+    };
+  }
+  raw.settings = {
+    volume: localStorage.getItem('volume') === null ? .35 : Number(localStorage.getItem('volume')),
+    brightness: localStorage.getItem('luminosite') === null ? 100 : Number(localStorage.getItem('luminosite')),
+    theme: localStorage.getItem('mode'),
+    musicEnabled: localStorage.getItem('musique') === 'oui'
+  };
+  if (localStorage.getItem('latitude') !== null) {
+    raw.settings.location = {
+      latitude: Number(localStorage.getItem('latitude')), longitude: Number(localStorage.getItem('longitude')),
+      accuracy: localStorage.getItem('precision') === null ? null : Number(localStorage.getItem('precision')),
+      timestamp: localStorage.getItem('datePosition') === null ? null : Number(localStorage.getItem('datePosition'))
+    };
+  }
+  const progression = localStorage.getItem('progression');
+  if (progression !== null) {
+    try {
+      const saved = JSON.parse(progression);
+      raw.missions = saved.missions;
+      raw.quiz = saved.quiz;
+      raw.hangman = saved.hangman;
+    } catch (error) {
+      loadWarning = 'La progression enregistrée est illisible. Un parcours vierge a été ouvert (ton profil est conservé).';
+    }
+  }
+  if (localStorage.getItem('dernierResultatPendu') !== null) {
+    raw.hangman = isObject(raw.hangman) ? raw.hangman : {};
+    raw.hangman.lastResult = {
+      won: localStorage.getItem('dernierResultatPendu') === 'gagné', word: localStorage.getItem('dernierMotPendu'),
+      errors: Number(localStorage.getItem('dernierScorePendu')), date: localStorage.getItem('dateDernierPendu')
+    };
+  }
+  return normalizeState(raw);
 }
 
 let state = readState();
@@ -416,14 +468,55 @@ function focusById(id) {
 /* ==========================================================================
    4. SAUVEGARDE, MESSAGES ET RÉGLAGES D'AFFICHAGE
    ========================================================================== */
+// Écriture de la sauvegarde avec setItem() / removeItem(), une clé par information.
+function saveState(s) {
+  const p = s.profile;
+  if (p) {
+    localStorage.setItem('pseudo', p.nickname);
+    localStorage.setItem('nom', p.lastName);
+    localStorage.setItem('prenom', p.firstName);
+    localStorage.setItem('age', p.age);
+    localStorage.setItem('stade', p.stadium);
+  } else {
+    ['pseudo', 'nom', 'prenom', 'age', 'stade'].forEach(key => localStorage.removeItem(key));
+  }
+  localStorage.setItem('volume', s.settings.volume);
+  localStorage.setItem('musique', s.settings.musicEnabled ? 'oui' : 'non');
+  localStorage.setItem('mode', s.settings.theme);
+  localStorage.setItem('luminosite', s.settings.brightness);
+  const loc = s.settings.location;
+  if (loc) {
+    localStorage.setItem('latitude', loc.latitude);
+    localStorage.setItem('longitude', loc.longitude);
+    if (loc.accuracy !== null) localStorage.setItem('precision', loc.accuracy); else localStorage.removeItem('precision');
+    if (loc.timestamp !== null) localStorage.setItem('datePosition', loc.timestamp); else localStorage.removeItem('datePosition');
+  } else {
+    ['latitude', 'longitude', 'precision', 'datePosition'].forEach(key => localStorage.removeItem(key));
+  }
+  const last = s.hangman.lastResult;
+  if (last) {
+    localStorage.setItem('dernierResultatPendu', last.won ? 'gagné' : 'perdu');
+    localStorage.setItem('dernierScorePendu', last.errors);
+    localStorage.setItem('dernierMotPendu', last.word);
+    if (last.date) localStorage.setItem('dateDernierPendu', last.date); else localStorage.removeItem('dateDernierPendu');
+  } else {
+    ['dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu', 'dateDernierPendu'].forEach(key => localStorage.removeItem(key));
+  }
+  // Missions, quiz et partie de pendu en cours : une seule chaîne de caractères (JSON).
+  localStorage.setItem('progression', JSON.stringify({ missions: s.missions, quiz: s.quiz, hangman: { game: s.hangman.game, bonusAwarded: s.hangman.bonusAwarded } }));
+}
+
 function persist() {
   deriveState(state);
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    storageAvailable = true;
-  } catch (error) {
-    if (storageAvailable) notify('La sauvegarde locale est indisponible. Ta progression reste active ici, mais peut être perdue à la fermeture.', 'error');
-    storageAvailable = false;
+  if (!storageSupported()) storageAvailable = false;
+  else {
+    try {
+      saveState(state);
+      storageAvailable = true;
+    } catch (error) {
+      if (storageAvailable) notify('La sauvegarde locale est pleine ou bloquée. Ta progression reste active ici, mais peut être perdue à la fermeture.', 'error');
+      storageAvailable = false;
+    }
   }
   updateStorageStatus();
   return storageAvailable;
@@ -1047,7 +1140,8 @@ function renderSettings() {
     el('p', { className: 'diagnostic-result', id: 'diagnostic-result', role: 'status' }),
     el('div', { className: 'danger-zone' },
       el('p', { className: 'setting-help wide' }, 'Repartir de zéro efface les missions, les points, le quiz, le Pendu et les badges. Ton profil et tes réglages sont conservés.'),
-      el('button', { type: 'button', className: 'text-button danger-text', dataset: { action: 'reset' } }, icon('replay'), 'Réinitialiser mon parcours')));
+      el('button', { type: 'button', className: 'text-button danger-text', dataset: { action: 'reset' } }, icon('replay'), 'Réinitialiser mon parcours'),
+      el('button', { type: 'button', className: 'text-button danger-text', dataset: { action: 'clear-all' } }, icon('close'), 'Supprimer mon joueur et toutes mes données')));
 
   return el('div', { className: 'container page' },
     el('div', { className: 'page-intro' },
@@ -1374,10 +1468,15 @@ function advanceQuiz() {
   state.quiz.lastAnswers = answers;
   state.quiz.attempts++;
   state.quiz.completedAt = new Date().toISOString();
-  const sessionResult = { score, total: 10, percentage: score * 10, answers, nickname: state.profile.nickname, completedAt: state.quiz.completedAt };
-  let sessionSaved = true;
-  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionResult)); }
-  catch (error) { sessionSaved = false; }
+  // Score du quiz dans le sessionStorage (cours : sessionStorage.setItem("score", 120)).
+  const sessionSaved = storageSupported();
+  if (sessionSaved) {
+    sessionStorage.setItem('scoreQuiz', score * 10);
+    sessionStorage.setItem('bonnesReponsesQuiz', score);
+    sessionStorage.setItem('reponsesQuiz', answers.join(','));
+    sessionStorage.setItem('pseudoQuiz', state.profile.nickname);
+    sessionStorage.setItem('dateQuiz', state.quiz.completedAt);
+  }
   const localSaved = persist();
   quizRun = null;
   renderCurrent(true);
@@ -1392,13 +1491,15 @@ function retryQuiz() {
   });
 }
 
+// Lecture du score de la session avec sessionStorage.getItem().
 function readQuizSession() {
-  try {
-    const result = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
-    if (!isObject(result) || !isScore(result.score) || result.total !== 10 || !Array.isArray(result.answers) || result.answers.length !== 10 || !result.answers.every(a => Number.isInteger(a) && a >= 0 && a < 4)) return null;
-    if (result.answers.filter((answer, i) => answer === QUESTIONS[i].correct).length !== result.score || result.percentage !== result.score * 10) return null;
-    return result;
-  } catch (error) { return null; }
+  if (!storageSupported() || sessionStorage.getItem('scoreQuiz') === null) return null;
+  const score = Number(sessionStorage.getItem('bonnesReponsesQuiz'));
+  const percentage = Number(sessionStorage.getItem('scoreQuiz'));
+  const answers = (sessionStorage.getItem('reponsesQuiz') || '').split(',').map(Number);
+  if (!isScore(score) || percentage !== score * 10 || answers.length !== 10 || !answers.every(a => Number.isInteger(a) && a >= 0 && a < 4)) return null;
+  if (answers.filter((answer, i) => answer === QUESTIONS[i].correct).length !== score) return null;
+  return { score, total: 10, percentage, answers, nickname: sessionStorage.getItem('pseudoQuiz'), completedAt: sessionStorage.getItem('dateQuiz') };
 }
 
 /* ==========================================================================
@@ -1465,44 +1566,81 @@ function setTheme(theme) {
     button.setAttribute('aria-pressed', String(active));
   });
 }
-let geoRequestId = 0;
-function requestGeolocation() {
-  if (!state.profile || locationBusy) return;
-  const report = (message, type) => {
-    locationBusy = false;
-    locationMessage = { text: message, type };
-    if (route === 'settings') renderCurrent(false);
-    notify(message, type);
-  };
-  if (!window.isSecureContext) { report('La géolocalisation nécessite HTTPS ou localhost. Ouvre le site avec Live Server sur ton ordinateur.', 'error'); return; }
-  if (!navigator.geolocation) { report('Ce navigateur ne propose pas la géolocalisation. Le reste du parcours reste accessible.', 'error'); return; }
-  locationBusy = true;
-  locationMessage = { text: 'En attente de ton autorisation et de la position du navigateur...', type: '' };
-  const requestId = ++geoRequestId;
+/* Géolocalisation (cours) : navigator.geolocation.getCurrentPosition(success, error, options).
+   La position n'est demandée qu'après un clic, avec l'accord de l'utilisateur. */
+function showGeoMessage(message, type) {
+  locationBusy = false;
+  locationMessage = { text: message, type };
   if (route === 'settings') renderCurrent(false);
-  try {
-    navigator.geolocation.getCurrentPosition(position => {
-      if (requestId !== geoRequestId || !state.profile) return;
-      state.settings.location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy, timestamp: position.timestamp };
-      const saved = persist();
-      report(saved ? 'Position autorisée et enregistrée uniquement sur cet appareil.' : 'Position obtenue pour cette visite, mais la sauvegarde locale est indisponible.', saved ? 'success' : 'error');
-    }, error => {
-      if (requestId !== geoRequestId) return;
-      const messages = { 1: 'Autorisation refusée. Aucune nouvelle position n’a été enregistrée. Tu peux modifier ce choix dans les permissions du navigateur.', 2: 'Ta position est momentanément indisponible. Vérifie les services de localisation puis réessaie.', 3: 'La recherche de position a pris trop de temps. Tu peux réessayer quand tu veux.' };
-      report(messages[error.code] || 'La géolocalisation est bloquée par ce navigateur ou cette page.', 'error');
-    }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 });
-  } catch (error) { report('La politique de sécurité de ce navigateur empêche la géolocalisation.', 'error'); }
+  notify(message, type);
+}
+
+function getLocation() {
+  if (!state.profile || locationBusy) return;
+  if (navigator.geolocation) {
+    locationBusy = true;
+    locationMessage = { text: 'En attente de ton autorisation et de la position du navigateur...', type: '' };
+    if (route === 'settings') renderCurrent(false);
+    navigator.geolocation.getCurrentPosition(showPosition, showError, { maximumAge: 60000, timeout: 12000, enableHighAccuracy: false });
+  } else {
+    showGeoMessage('La géolocalisation n’est pas prise en charge par ce navigateur.', 'error');
+  }
+}
+
+// Succès : on garde latitude, longitude et précision (position.coords).
+function showPosition(position) {
+  if (!locationBusy || !state.profile) return;
+  state.settings.location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy, timestamp: position.timestamp };
+  const saved = persist();
+  showGeoMessage(saved ? 'Latitude : ' + position.coords.latitude.toFixed(4) + ' · Longitude : ' + position.coords.longitude.toFixed(4) + '. Position enregistrée sur cet appareil.' : 'Position obtenue pour cette visite, mais la sauvegarde locale est indisponible.', saved ? 'success' : 'error');
+}
+
+// Erreur : codes du cours (PERMISSION_DENIED, POSITION_UNAVAILABLE, TIMEOUT).
+function showError(error) {
+  if (!locationBusy) return;
+  switch (error.code) {
+    case error.PERMISSION_DENIED:
+      showGeoMessage('Tu as refusé la géolocalisation. Aucune position n’a été enregistrée.', 'error');
+      break;
+    case error.POSITION_UNAVAILABLE:
+      showGeoMessage('Ta position est indisponible pour le moment. Vérifie les services de localisation.', 'error');
+      break;
+    case error.TIMEOUT:
+      showGeoMessage('La demande de position a pris trop de temps. Réessaie quand tu veux.', 'error');
+      break;
+    default:
+      showGeoMessage('Une erreur inconnue est survenue pendant la géolocalisation.', 'error');
+  }
 }
 
 function clearLocation() {
   if (!state.profile) return;
-  ++geoRequestId;
   locationBusy = false;
   state.settings.location = null;
   const saved = persist();
   locationMessage = { text: saved ? 'Ta position a été effacée de la sauvegarde. Aucun suivi n’est actif.' : 'Position retirée pour cette visite uniquement. Le navigateur a refusé la modification de la sauvegarde ; efface les données du site dans ses paramètres pour la supprimer définitivement.', type: saved ? 'success' : 'error' };
   if (route === 'settings') renderCurrent(false);
   notify(locationMessage.text, locationMessage.type);
+}
+
+// Supprime le joueur et toutes ses données : localStorage.clear() et sessionStorage.clear().
+function clearAllData() {
+  if (!state.profile) return;
+  confirmAction('TOUT EFFACER ?', 'Ton profil, ta progression, tes scores et tes réglages seront supprimés de cet appareil. Le formulaire d’inscription s’affichera de nouveau.', 'TOUT EFFACER', () => {
+    if (storageSupported()) {
+      localStorage.clear();
+      sessionStorage.clear();
+    }
+    if (musicPlaying || musicStarting) pauseMusic(false);
+    state = freshState();
+    quizRun = null;
+    missionFeedback = null;
+    locationBusy = false;
+    locationMessage = null;
+    applySettings();
+    navigate('home');
+    notify('Toutes les données ont été effacées. Crée un nouveau joueur pour recommencer.', 'success');
+  }, true);
 }
 
 function resetProgress() {
@@ -1516,9 +1654,9 @@ function resetProgress() {
     quizRun = null;
     missionFeedback = null;
     locationBusy = false;
-    ++geoRequestId;
-    let sessionCleared = true;
-    try { sessionStorage.removeItem(SESSION_KEY); } catch (error) { sessionCleared = false; }
+    // Le sessionStorage ne contient que le score du quiz : on le vide avec clear().
+    const sessionCleared = storageSupported();
+    if (sessionCleared) sessionStorage.clear();
     const saved = persist();
     navigate('home');
     notify(saved && sessionCleared ? 'Nouveau départ ! La mission 1 t’attend, ' + profile.nickname + '.' : 'Le parcours est remis à zéro ici, mais le navigateur a refusé une opération de stockage.', saved && sessionCleared ? 'success' : 'error');
@@ -1810,12 +1948,20 @@ function showDiagnostics() {
   let localValid = false;
   try {
     if (persist()) {
-      const recovered = normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY)));
+      const recovered = readState();
       localValid = recovered.totalPoints === state.totalPoints && JSON.stringify(recovered.missions) === JSON.stringify(state.missions) && recovered.profile?.nickname === state.profile.nickname;
     }
   } catch (error) { localValid = false; }
   const session = readQuizSession();
-  output.textContent = checks.passed + '/' + checks.total + ' contrôles internes réussis. ' + (localValid ? 'Sauvegarde locale relue : cohérente.' : 'Sauvegarde locale : indisponible ou incohérente.') + (session ? ' Score de cette session : ' + session.score + '/10, vérifié.' : ' Aucun quiz terminé dans cette session.') + ' Vidéo, audio et autorisation de localisation sont à vérifier dans ton navigateur.';
+  // Parcours du localStorage avec length et key(index), comme dans le cours.
+  const keys = [];
+  if (storageSupported()) {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (LOCAL_KEYS.includes(key)) keys.push(key);
+    }
+  }
+  output.textContent = checks.passed + '/' + checks.total + ' contrôles internes réussis. ' + (localValid ? 'Sauvegarde locale relue : cohérente.' : 'Sauvegarde locale : indisponible ou incohérente.') + (session ? ' Score de cette session : ' + session.score + '/10, vérifié.' : ' Aucun quiz terminé dans cette session.') + ' ' + keys.length + ' clés dans le localStorage : ' + keys.join(', ') + '.';
 
   const failed = checks.failures.length > 0 || !localValid;
   output.classList.toggle('is-ok', !failed);
@@ -1874,10 +2020,11 @@ document.addEventListener('click', event => {
     case 'quiz-next': advanceQuiz(); break;
     case 'quiz-retry': retryQuiz(); break;
     case 'hangman-replay': replayHangman(); break;
-    case 'geolocation': requestGeolocation(); break;
+    case 'geolocation': getLocation(); break;
     case 'clear-location': clearLocation(); break;
     case 'diagnostics': showDiagnostics(); break;
     case 'reset': resetProgress(); break;
+    case 'clear-all': clearAllData(); break;
     case 'credits': showCredits(); break;
     case 'close-dialog': closeDialog(); break;
     case 'confirm-dialog': { const callback = dialogConfirm; closeDialog(); if (callback) callback(); break; }
@@ -1937,8 +2084,10 @@ window.addEventListener('hashchange', () => {
   if (requested) navigate(requested.route, requested.missionId, false);
   syncHistory();
 });
+// Événement storage (cours) : déclenché quand un AUTRE onglet du site modifie le localStorage.
 window.addEventListener('storage', event => {
-  if (event.key !== STORAGE_KEY && event.key !== null) return;
+  if (event.storageArea !== localStorage) return;
+  if (event.key !== null && !LOCAL_KEYS.includes(event.key)) return;
   closeDialog();
   const oldQuizClaimed = state.quiz.claimed;
   state = readState();
@@ -1948,7 +2097,7 @@ window.addEventListener('storage', event => {
   missionFeedback = null;
   renderCurrent(false);
   syncHistory();
-  notify('Ta progression a été mise à jour depuis un autre onglet.');
+  notify(event.key === null ? 'Les données ont été effacées depuis un autre onglet.' : 'Changement détecté dans le stockage (« ' + event.key + ' ») depuis un autre onglet.');
 });
 
 /* ==========================================================================
