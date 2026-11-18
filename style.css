@@ -102,7 +102,6 @@ input { min-width: 0; }
 .hero-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 47%; z-index: -4; animation: stadium-arrival 2s ease-out both; }
 .hero::before { content: ''; position: absolute; inset: 0; z-index: -3; background: linear-gradient(90deg, #091217 0%, rgba(9, 18, 23, .94) 25%, rgba(9, 18, 23, .67) 44%, rgba(9, 18, 23, .08) 72%), linear-gradient(0deg, #0b1217 0%, rgba(9, 18, 23, .07) 28%, rgba(9, 18, 23, .07) 80%, rgba(9, 18, 23, .2)); }
 .hero::after { content: ''; position: absolute; inset: 0; z-index: -2; background: linear-gradient(120deg, transparent 57%, rgba(163, 211, 151, .04) 58%, transparent 78%); pointer-events: none; }
-.hero-media-error { position: absolute; right: 24px; bottom: 15px; font-size: 9px; color: #b3c2b7; }
 .stadium-beam { position: absolute; z-index: -1; width: 270px; height: 950px; top: -580px; right: 5%; background: linear-gradient(180deg, rgba(229, 255, 219, .29), transparent); filter: blur(28px); transform: rotate(32deg); transform-origin: top center; opacity: .35; animation: stadium-glow 11s ease-in-out infinite alternate; pointer-events: none; }
 .stadium-beam.second { right: 24%; width: 150px; transform: rotate(-24deg); animation-delay: -6s; opacity: .15; }
 .hero-inner { position: relative; padding-block: 57px 65px; }
@@ -178,8 +177,6 @@ input { min-width: 0; }
 .immersion { display: grid; grid-template-columns: 1.1fr .9fr; align-items: center; gap: 64px; padding-block: 64px; }
 .video-wrap { position: relative; border-radius: 8px; overflow: hidden; background: #030906; }
 .video-wrap video { width: 100%; aspect-ratio: 16/9; object-fit: cover; }
-.video-error { padding: 16px; background: var(--surface); color: var(--muted); font-size: 12px; }
-.video-error a { display: inline-block; color: var(--accent); text-decoration: underline; margin-top: 5px; }
 .immersion h2 { font-size: 48px; margin-top: 13px; }
 .immersion-copy { margin-top: 13px; max-width: 350px; font-size: 12px; line-height: 1.9; color: var(--muted); }
 .audio-player { margin-top: 25px; border-top: 1px solid var(--line); padding-top: 20px; }
@@ -210,24 +207,8 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
 .page-intro { margin-bottom: 32px; }
 .page-intro h1 { margin-top: 15px; max-width: 850px; font-size: 63px; }
 .page-intro > p { margin-top: 13px; max-width: 660px; color: var(--muted); font-size: 13px; }
-.page-intro-row { display: flex; align-items: end; justify-content: space-between; gap: 25px; }
-.progress-block { width: 245px; flex-shrink: 0; }
-.progress-label { display: flex; justify-content: space-between; gap: 15px; color: var(--muted); font-size: 10px; margin-bottom: 9px; }
-.progress-label strong { color: var(--accent); font-weight: 600; }
 .progress-track { height: 4px; background: var(--line); border-radius: 5px; overflow: hidden; }
 .progress-track > span { display: block; height: 100%; background: var(--accent); border-radius: inherit; transition: width .5s ease; }
-.journey-list { display: grid; gap: 17px; }
-.journey-row { display: grid; grid-template-columns: 230px 1fr auto; align-items: center; gap: 30px; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; overflow: hidden; padding-right: 28px; }
-.journey-row > img { width: 230px; height: 165px; object-fit: cover; filter: saturate(.6) brightness(.8); }
-.journey-row.locked > img { filter: saturate(0) brightness(.45); }
-.journey-row.available { border-color: rgba(190, 246, 91, .35); }
-.journey-row .mission-age { margin-bottom: 7px; }
-.journey-row h2 { font-size: 31px; }
-.journey-row p { font-size: 11px; color: var(--muted); margin-top: 9px; max-width: 510px; }
-.journey-row .row-score { font-size: 10px; color: var(--accent); margin-top: 8px; }
-.journey-row .button { min-width: 135px; }
-.locked-label { color: var(--muted); display: flex; align-items: center; gap: 8px; font-size: 10px; width: 135px; justify-content: center; }
-.locked-label .icon { width: 15px; height: 15px; }
 .back-link { margin-bottom: 22px; }
 .back-link .icon { transform: rotate(180deg); }
 .mission-heading { display: flex; align-items: end; justify-content: space-between; gap: 25px; }
@@ -368,31 +349,12 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
 .location-output.success { color: var(--accent); }
 .location-output.error { color: var(--danger); }
 .location-actions { display: flex; align-items: center; gap: 17px; flex-wrap: wrap; }
-.app-dialog { width: min(470px, calc(100% - 32px)); max-height: calc(100vh - 48px); margin: auto; padding: 35px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 15px; box-shadow: 0 25px 100px #0006; overflow: auto; }
-.app-dialog[open] { animation: dialog-in .25s ease both; }
-.app-dialog::backdrop { background: rgba(3, 10, 13, .78); backdrop-filter: blur(7px); }
-.dialog-icon { width: 56px; height: 56px; color: var(--accent); background: var(--accent-soft); border-radius: 50%; display: grid; place-items: center; margin-bottom: 20px; }
-.dialog-icon .icon { width: 27px; height: 27px; }
-.app-dialog h2 { font-family: var(--font-display); font-size: 38px; text-transform: uppercase; font-weight: 600; line-height: 1.05; }
-.dialog-copy { margin-top: 15px; color: var(--muted); font-size: 12px; line-height: 1.9; }
-.dialog-copy a { color: var(--accent); text-decoration: underline; }
-.dialog-copy ul { margin: 12px 0; padding-left: 18px; }
-.dialog-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 27px; }
-.dialog-actions .button { min-height: 42px; font-size: 10px; padding: 10px 17px; }
-.success-dialog { text-align: center; }
-.success-dialog .dialog-icon { margin-inline: auto; }
-.success-dialog .dialog-actions { justify-content: center; }
-.confetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
-.confetti i { position: absolute; width: 5px; height: 9px; background: var(--accent); left: calc(var(--i) * 5%); top: -15px; animation: confetti-fall 2.2s calc(var(--i) * .045s) ease-out both; }
-.confetti i:nth-child(3n) { background: var(--gold); }
-.confetti i:nth-child(2n) { background: #e6f0e2; width: 4px; height: 5px; }
 .toast { position: fixed; bottom: 24px; left: 50%; width: max-content; max-width: min(580px, calc(100% - 32px)); padding: 15px 17px; background: var(--surface-up); color: var(--text); border: 1px solid var(--line); border-radius: 9px; display: flex; align-items: center; gap: 11px; box-shadow: 0 12px 45px #0004; z-index: 80; opacity: 0; transform: translate(-50%, 18px); pointer-events: none; transition: opacity .25s, transform .25s; }
 .toast.visible { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
 .toast > .icon { color: var(--accent); width: 18px; height: 18px; }
 .toast.error > .icon { color: var(--danger); }
 .toast p { font-size: 11px; line-height: 1.7; }
 .toast .icon-button { margin: -5px -7px -5px 5px; width: 25px; height: 25px; }
-.view-enter { animation: rise-in .35s ease both; }
 @keyframes rise-in { from { opacity: 0; translate: 0 16px; } to { opacity: 1; translate: 0 0; } }
 @keyframes stadium-arrival { from { transform: scale(1.045); opacity: .35; } to { transform: scale(1); opacity: 1; } }
 @keyframes stadium-glow { from { opacity: .12; rotate: -5deg; } to { opacity: .36; rotate: 5deg; } }
@@ -400,8 +362,6 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
 @keyframes equalize { from { height: 4px; } to { height: 21px; } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-4px); } 50% { transform: translateX(4px); } }
 @keyframes draw-part { from { opacity: 0; } to { opacity: 1; } }
-@keyframes dialog-in { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
-@keyframes confetti-fall { from { opacity: 1; transform: translateY(0) rotate(0); } to { opacity: 0; transform: translateY(340px) rotate(360deg); } }
 @media (min-width: 1600px) { .hero { min-height: 690px; } .hero-inner { padding-top: 80px; } .hero-title { font-size: 134px; } }
 @media (max-width: 1190px) {
   .header-inner { gap: 20px; width: calc(100% - 44px); }
@@ -414,8 +374,6 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
   .mission-grid { gap: 12px; }
   .mission-card h3 { font-size: 21px; }
   .mission-card-body { padding-inline: 12px; }
-  .journey-row { grid-template-columns: 190px 1fr auto; gap: 22px; padding-right: 22px; }
-  .journey-row > img { width: 190px; }
   .settings-layout { gap: 45px; }
   .home-metrics { gap: 30px; }
   .hangman-layout { gap: 35px; grid-template-columns: .8fr 1.2fr; }
@@ -444,13 +402,6 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
   .player-home-inner { align-items: start; flex-direction: column; gap: 26px; }
   .home-metrics { justify-content: space-between; width: 100%; }
   .page-intro h1 { font-size: 54px; }
-  .page-intro-row { align-items: start; flex-direction: column; }
-  .progress-block { width: 100%; max-width: 400px; }
-  .journey-row { grid-template-columns: 160px 1fr; padding: 0 20px 0 0; gap: 15px 22px; }
-  .journey-row > img { grid-row: span 2; width: 160px; height: 200px; }
-  .journey-row-content { padding-top: 20px; }
-  .journey-row > .button, .journey-row > .locked-label { grid-column: 2; justify-self: start; margin-bottom: 20px; }
-  .journey-row h2 { font-size: 28px; }
   .settings-layout { grid-template-columns: 1fr; gap: 0; }
   .settings-layout > div:first-child { max-width: 640px; }
   .settings-layout > div:last-child { max-width: 640px; }
@@ -511,15 +462,6 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
   .page-intro { margin-bottom: 25px; }
   .page-intro h1 { font-size: 45px; }
   .page-intro > p { font-size: 12px; }
-  .page-intro-row { gap: 23px; }
-  .journey-row { grid-template-columns: 96px 1fr; gap: 10px 15px; padding-right: 14px; }
-  .journey-row > img { width: 96px; height: 225px; }
-  .journey-row h2 { font-size: 27px; }
-  .journey-row p { font-size: 10px; }
-  .journey-row .mission-age { font-size: 8px; }
-  .journey-row .button { min-height: 37px; font-size: 9px; padding: 8px 14px; }
-  .journey-row-content { padding-top: 15px; }
-  .locked-label { justify-content: start; font-size: 9px; }
   .mission-heading { align-items: start; gap: 15px; }
   .mission-heading h1 { font-size: 43px; }
   .mission-heading .eyebrow { font-size: 8px; letter-spacing: 1.5px; }
@@ -576,8 +518,6 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
   .setting-range { width: 125px; gap: 8px; }
   .setting-range input { width: 86px; }
   .theme-control button { font-size: 9px; padding: 6px 8px; }
-  .app-dialog { padding: 28px 24px; }
-  .app-dialog h2 { font-size: 33px; }
   .toast { bottom: 15px; padding: 12px; }
   .toast p { font-size: 10px; }
 }
@@ -592,24 +532,15 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
 .noscript-text { margin-top: 20px; }
 .home-metric strong small.unit { font-size: 20px; }
 .player-progress { margin-top: 25px; }
-.journey-tagline { font-size: 12px; margin-top: 14px; }
-.mission-bottom.quiz-cta { margin-top: 15px; }
-.locked-label { background: transparent; }
 .setting-help.wide { max-width: none; margin-bottom: 13px; }
 .text-button.danger-text { color: var(--danger); }
-.img-failed { visibility: hidden; }
 
 /* ---------- 4. Carte interactive des stades (formulaire du joueur) ---------- */
-.stadium-map { margin-top: 24px; min-width: 0; }
-.stadium-map legend { font-size: 11px; font-weight: 600; margin-bottom: 6px; }
-.stadium-map legend .muted { font-weight: 400; }
-.map-help { font-size: 10px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
 .map-layout { display: grid; grid-template-columns: 1.25fr 1fr; gap: 14px; align-items: stretch; }
 .map-canvas { position: relative; aspect-ratio: 532 / 520; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: radial-gradient(circle at 35% 30%, var(--accent-soft), transparent 65%), var(--bg); }
 .map-land { position: absolute; inset: 0; width: 100%; height: 100%; fill: var(--surface-up); stroke: var(--line); stroke-width: 1; }
 .map-marker { position: absolute; z-index: 1; width: 16px; height: 16px; margin: -8px 0 0 -8px; padding: 0; border-radius: 50%; background: var(--accent); border: 3px solid var(--bg); animation: marker-pulse 2.4s ease-out infinite; transition: transform .2s, background .2s; }
 .map-marker:hover, .map-marker:focus-visible { transform: scale(1.3); z-index: 3; }
-.map-marker.visited { background: var(--gold); }
 .map-marker.active { z-index: 2; background: var(--text); animation: none; box-shadow: 0 0 0 4px var(--accent); }
 .map-marker-label { position: absolute; left: 50%; bottom: calc(100% + 7px); transform: translateX(-50%); padding: 3px 7px; border-radius: 4px; background: var(--surface-up); border: 1px solid var(--line); color: var(--text); font-size: 9px; font-weight: 700; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .map-marker:hover .map-marker-label, .map-marker:focus-visible .map-marker-label, .map-marker.active .map-marker-label { opacity: 1; }
@@ -619,13 +550,9 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
 .map-info .map-info-title { font-family: var(--font-display); font-size: 25px; font-weight: 700; line-height: 1.05; text-transform: uppercase; }
 .map-info-place { color: var(--accent); font-weight: 600; }
 .map-info .text-button { align-self: flex-start; margin-top: auto; }
-.map-count { margin-top: 10px; font-size: 10px; color: var(--muted); }
 @keyframes marker-pulse { 0% { box-shadow: 0 0 0 0 rgba(190, 246, 91, .55); } 70%, 100% { box-shadow: 0 0 0 12px rgba(190, 246, 91, 0); } }
 @media (max-width: 1190px) { .map-layout { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .map-marker { animation: none; } }
-.registration-layout .stadium-map p { max-width: none; margin-top: 0; font-size: 11px; line-height: 1.6; }
-.registration-layout .stadium-map .map-help { font-size: 10px; }
-.registration-layout .stadium-map .map-count { margin-top: 10px; font-size: 10px; }
 
 /* ---------- 5. Valeurs fixes (auparavant données par le JavaScript) ---------- */
 /* Luminosité : une classe par palier de 5 % sur <html> */
@@ -654,7 +581,7 @@ html.brightness-120 { --brightness: 1.2; }
 .progress-track > span.pct-80 { width: 80%; }
 .progress-track > span.pct-90 { width: 90%; }
 .progress-track > span.pct-100 { width: 100%; }
-/* Décalage de l'animation des barres de l'égaliseur et des confettis */
+/* Décalage de l'animation des barres de l'égaliseur */
 .equalizer i:nth-child(1) { --i: 0; }
 .equalizer i:nth-child(2) { --i: 1; }
 .equalizer i:nth-child(3) { --i: 2; }
@@ -664,26 +591,6 @@ html.brightness-120 { --brightness: 1.2; }
 .equalizer i:nth-child(7) { --i: 6; }
 .equalizer i:nth-child(8) { --i: 7; }
 .equalizer i:nth-child(9) { --i: 8; }
-.confetti i:nth-child(1) { --i: 0; }
-.confetti i:nth-child(2) { --i: 1; }
-.confetti i:nth-child(3) { --i: 2; }
-.confetti i:nth-child(4) { --i: 3; }
-.confetti i:nth-child(5) { --i: 4; }
-.confetti i:nth-child(6) { --i: 5; }
-.confetti i:nth-child(7) { --i: 6; }
-.confetti i:nth-child(8) { --i: 7; }
-.confetti i:nth-child(9) { --i: 8; }
-.confetti i:nth-child(10) { --i: 9; }
-.confetti i:nth-child(11) { --i: 10; }
-.confetti i:nth-child(12) { --i: 11; }
-.confetti i:nth-child(13) { --i: 12; }
-.confetti i:nth-child(14) { --i: 13; }
-.confetti i:nth-child(15) { --i: 14; }
-.confetti i:nth-child(16) { --i: 15; }
-.confetti i:nth-child(17) { --i: 16; }
-.confetti i:nth-child(18) { --i: 17; }
-.confetti i:nth-child(19) { --i: 18; }
-.confetti i:nth-child(20) { --i: 19; }
 /* Position des stades sur la carte interactive (en % de la carte) */
 .map-marker[data-stadium="old-trafford"] { left: 30.8%; top: 13.6%; }
 .map-marker[data-stadium="parc-des-princes"] { left: 42.8%; top: 31.4%; }
@@ -735,3 +642,10 @@ html.brightness-120 { --brightness: 1.2; }
 .stored-data strong { color: var(--accent); font-weight: 600; }
 .settings-group .audio-play { flex-shrink: 0; }
 .setting-range .volume-value { white-space: nowrap; min-width: 42px; }
+
+/* ---------- 9. Carte des stades sur l'accueil ---------- */
+.home-map { margin-top: 70px; }
+.home-map .map-layout { grid-template-columns: minmax(0, 520px) 1fr; gap: 24px; }
+.home-map .map-info { font-size: 12px; padding: 22px; }
+.home-map .map-info .map-info-title { font-size: 30px; }
+@media (max-width: 860px) { .home-map .map-layout { grid-template-columns: 1fr; } }

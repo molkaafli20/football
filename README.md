@@ -24,13 +24,13 @@ audio/       → road-to-glory.mp3, la musique d'ambiance (balise <audio>)
 
 | Partie | Contenu |
 | --- | --- |
-| Premier chargement | Formulaire nom, prénom, pseudo, âge (entier) avec validation + carte interactive des stades |
-| localStorage | Une clé par information : `pseudo`, `nom`, `prenom`, `age`, `stade`, `volume`, `mode`, `luminosite`, `latitude`, `longitude`, `precision`, `dernierResultatPendu`, `dernierScorePendu`, `dernierMotPendu` + `progression` (missions, dernier score du quiz) |
-| Accueil | Cartes CSS3 3D, animations CSS3, texte néon, vidéo, musique (balise `<audio>`) avec boutons lecture / pause / volume personnalisés, bouton « Commencer mon voyage » |
+| Premier chargement | Formulaire nom, prénom, pseudo, âge (entier) avec validation |
+| localStorage | Une clé par information : `pseudo`, `nom`, `prenom`, `age`, `volume`, `mode`, `luminosite`, `latitude`, `longitude`, `precision`, `dernierResultatPendu`, `dernierScorePendu`, `dernierMotPendu` + `progression` (missions, dernier score du quiz) |
+| Accueil | Cartes CSS3 3D, animations CSS3, texte néon, vidéo, musique (balise `<audio>`) avec boutons lecture / pause / volume personnalisés, bouton « Commencer mon voyage », carte interactive des 8 stades (clic = fiche du stade) |
 | Drag & Drop | 3 missions débloquées une par une ; mission 2 : 6 images, 3 + 3, dans 2 zones, « Bravo ! » ou message d'erreur explicatif |
 | Quiz | 10 questions, score dans le sessionStorage (`scoreQuiz`, `pseudoQuiz`), message « Bravo [pseudo], tu as réussi [X]% de ta mission ! » |
 | Pendu | Mot au hasard, mot en tirets, clavier virtuel de 26 lettres, 6 erreurs max, essais restants, dessin progressif, Rejouer, dernier résultat sauvegardé |
-| Paramètres | Profil, géolocalisation (avec accord), musique et volume, mode sombre/clair, luminosité, liste des données enregistrées, suppression de toutes les données |
+| Paramètres | Profil (affichage), géolocalisation (avec accord), musique et volume, mode sombre/clair, luminosité, liste des données enregistrées, suppression de toutes les données |
 
 ## Règles techniques respectées
 

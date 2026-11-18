@@ -11,7 +11,7 @@
    1. DONNÉES DU JEU : missions, questions du quiz, mots du pendu, stades
    ========================================================================== */
 // Web Storage (cours) : chaque information a sa propre clé dans le localStorage.
-const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'stade', 'volume', 'mode', 'luminosite',
+const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'volume', 'mode', 'luminosite',
   'latitude', 'longitude', 'precision', 'datePosition',
   'dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu', 'progression'];
 // Score du quiz : sessionStorage (effacé à la fermeture de l'onglet) avec les clés scoreQuiz et pseudoQuiz.
@@ -91,7 +91,7 @@ const QUESTIONS = [
   { question: 'Quel est l’objectif principal d’une équipe pendant un match ?', options: ['Faire le plus de remplacements', 'Garder le ballon sans attaquer', 'Obtenir le plus de cartons', 'Marquer plus de buts que l’adversaire'], correct: 3, explanation: 'Le vainqueur est l’équipe qui a inscrit le plus de buts à la fin de la rencontre.' }
 ];
 
-// Carte interactive du formulaire (Europe et Afrique du Nord) : la position de chaque stade est dans style.css.
+// Carte interactive de l'accueil (Europe et Afrique du Nord) : la position de chaque stade est dans style.css.
 const STADIUMS = [
   { id: 'old-trafford', name: 'Old Trafford', city: 'Manchester', country: 'Angleterre', club: 'Manchester United', opened: 1910, fact: 'Surnommé « le théâtre des rêves », c’est l’un des plus anciens grands stades d’Angleterre.' },
   { id: 'parc-des-princes', name: 'Parc des Princes', city: 'Paris', country: 'France', club: 'Paris Saint-Germain', opened: 1972, fact: 'Son architecture en béton et ses tribunes très proches du terrain créent une ambiance réputée.' },
@@ -131,9 +131,7 @@ function validateProfile(input) {
     firstName: String(input.firstName ?? '').trim().replace(/\s+/g, ' '),
     lastName: String(input.lastName ?? '').trim().replace(/\s+/g, ' '),
     nickname: String(input.nickname ?? '').trim(),
-    age: Number(input.age),
-    // Stade de cœur choisi sur la carte (facultatif) : seul un identifiant connu est accepté.
-    stadium: STADIUMS.some(s => s.id === input.stadium) ? input.stadium : ''
+    age: Number(input.age)
   };
   const errors = {};
   const namePattern = /^[\p{L}][\p{L}\p{M}' -]{0,39}$/u;
@@ -187,8 +185,6 @@ function normalizeState(raw) {
   return deriveState(s);
 }
 
-let loadWarning = '';
-let storageAvailable = true;
 
 // Test du cours : le navigateur supporte-t-il localStorage et sessionStorage ?
 function storageSupported() {
@@ -197,16 +193,12 @@ function storageSupported() {
 
 // Lecture de la sauvegarde avec getItem(), clé par clé.
 function readState() {
-  if (!storageSupported()) {
-    storageAvailable = false;
-    loadWarning = 'Désolé, ton navigateur ne supporte pas le web storage : ta progression ne sera pas conservée.';
-    return freshState();
-  }
+  if (!storageSupported()) return freshState();
   const raw = {};
   if (localStorage.getItem('pseudo') !== null) {
     raw.profile = {
       firstName: localStorage.getItem('prenom'), lastName: localStorage.getItem('nom'),
-      nickname: localStorage.getItem('pseudo'), age: localStorage.getItem('age'), stadium: localStorage.getItem('stade') || ''
+      nickname: localStorage.getItem('pseudo'), age: localStorage.getItem('age')
     };
   }
   raw.settings = {
@@ -228,9 +220,7 @@ function readState() {
       raw.missions = saved.missions;
       raw.quiz = saved.quiz;
       raw.hangman = saved.hangman;
-    } catch (error) {
-      loadWarning = 'La progression enregistrée est illisible. Un parcours vierge a été ouvert (ton profil est conservé).';
-    }
+    } catch (error) { /* progression illisible : on repart de zéro */ }
   }
   if (localStorage.getItem('dernierResultatPendu') !== null) {
     raw.hangman = isObject(raw.hangman) ? raw.hangman : {};
@@ -247,13 +237,11 @@ let route = 'home';
 let activeMission = 0;
 let missionFeedback = null;
 let quizRun = null;
-let dialogConfirm = null;
 let toastTimer = null;
 let locationBusy = false;
 let locationMessage = null;
 let musicPlaying = false;
 const main = document.getElementById('main-content');
-const appDialog = document.getElementById('app-dialog');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 /* ==========================================================================
@@ -331,11 +319,6 @@ function eventElement(event) {
   return node && node.nodeType === 1 ? node : null;
 }
 
-function focusById(id) {
-  const node = byId(id);
-  if (node) node.focus({ preventScroll: true });
-}
-
 /* ==========================================================================
    4. SAUVEGARDE, MESSAGES ET RÉGLAGES D'AFFICHAGE
    ========================================================================== */
@@ -347,9 +330,8 @@ function saveState(s) {
     localStorage.setItem('nom', p.lastName);
     localStorage.setItem('prenom', p.firstName);
     localStorage.setItem('age', p.age);
-    localStorage.setItem('stade', p.stadium);
   } else {
-    ['pseudo', 'nom', 'prenom', 'age', 'stade'].forEach(key => localStorage.removeItem(key));
+    ['pseudo', 'nom', 'prenom', 'age'].forEach(key => localStorage.removeItem(key));
   }
   localStorage.setItem('volume', s.settings.volume);
   localStorage.setItem('mode', s.settings.theme);
@@ -377,26 +359,10 @@ function saveState(s) {
 
 function persist() {
   deriveState(state);
-  if (!storageSupported()) storageAvailable = false;
-  else {
-    try {
-      saveState(state);
-      storageAvailable = true;
-    } catch (error) {
-      if (storageAvailable) notify('La sauvegarde locale est pleine ou bloquée. Ta progression reste active ici, mais peut être perdue à la fermeture.', 'error');
-      storageAvailable = false;
-    }
-  }
-  updateStorageStatus();
-  return storageAvailable;
-}
-
-function updateStorageStatus() {
+  if (storageSupported()) saveState(state);
+  // La liste « Mes données » des paramètres est mise à jour à chaque sauvegarde.
   const list = document.getElementById('stored-data');
   if (list) setContent(list, storedDataItems());
-  byClass('storage-status').forEach(node => {
-    node.textContent = storageAvailable ? (state.profile ? 'Progression sauvegardée sur cet appareil' : 'Projet éducatif · 2026') : 'Sauvegarde indisponible';
-  });
 }
 
 function notify(message, type = 'info') {
@@ -429,7 +395,7 @@ function getHangmanStatus(game) {
    5. AFFICHAGE : en-tête et pages (construites avec createElement)
    ========================================================================== */
 const NAVIGATION = [
-  ['home', 'Accueil', 'home'], ['journey', 'Football Journey', 'route'],
+  ['home', 'Accueil', 'home'],
   ['quiz', 'Quiz final', 'trophy'], ['hangman', 'Pendu', 'pendu'],
   ['settings', 'Paramètres', 'settings']
 ];
@@ -452,7 +418,7 @@ const initialsOf = profile => ([...profile.firstName][0] + [...profile.lastName]
 const eyebrow = text => el('div', { className: 'eyebrow' }, text);
 
 function renderHeader() {
-  const active = route === 'mission' ? 'journey' : route;
+  const active = route === 'mission' ? 'home' : route;
   const nav = el('nav', { className: 'primary-nav', id: 'primary-nav', 'aria-label': 'Navigation principale' },
     NAVIGATION.map(([id, label, symbol]) => el('button', {
       type: 'button', className: 'nav-button' + (active === id ? ' active' : ''), dataset: { route: id },
@@ -475,111 +441,67 @@ function renderHeader() {
       el('button', { type: 'button', className: 'icon-button menu-button', id: 'menu-button', dataset: { action: 'menu' }, 'aria-label': 'Ouvrir le menu', 'aria-expanded': 'false', 'aria-controls': 'primary-nav' }, icon('menu')))));
 }
 
-function profileForm(mode) {
-  const p = mode === 'profile' ? state.profile : { firstName: '', lastName: '', nickname: '', age: '', stadium: '' };
-  return el('form', { id: mode + '-form', dataset: { form: mode }, novalidate: true },
-    el('p', { className: 'form-summary', id: mode + '-summary', role: 'alert', hidden: true }),
+function profileForm() {
+  return el('form', { id: 'register-form', novalidate: true },
+    el('p', { className: 'form-summary', id: 'register-summary', role: 'alert', hidden: true }),
     el('div', { className: 'form-grid' }, PROFILE_FIELDS.map(([name, label, type, placeholder, autocomplete]) => {
-      const inputProps = { id: `${mode}-${name}`, name, type, value: p[name], placeholder, autocomplete, required: true, 'aria-describedby': `${mode}-${name}-error` };
+      const inputProps = { id: `register-${name}`, name, type, placeholder, autocomplete, required: true, 'aria-describedby': `register-${name}-error` };
       if (type === 'number') Object.assign(inputProps, { min: 5, max: 100, step: 1, inputmode: 'numeric' });
-      else {
-        inputProps.maxlength = name === 'nickname' ? 20 : 40;
-        if (name === 'nickname') Object.assign(inputProps, { minlength: 3, spellcheck: 'false', autocapitalize: 'off' });
-      }
+      else inputProps.maxlength = name === 'nickname' ? 20 : 40;
       return el('div', { className: 'field' },
-        el('label', { for: `${mode}-${name}` }, label + ' ', el('span', { className: 'accent', 'aria-hidden': 'true' }, '*')),
+        el('label', { for: `register-${name}` }, label + ' ', el('span', { className: 'accent', 'aria-hidden': 'true' }, '*')),
         el('input', inputProps),
-        el('span', { id: `${mode}-${name}-error`, className: 'field-error' }));
+        el('span', { id: `register-${name}-error`, className: 'field-error' }));
     })),
-    mode === 'register' ? renderStadiumMap(mode, '') : el('input', { type: 'hidden', id: 'profile-stadium', name: 'stadium', value: p.stadium || '' }),
     el('div', { className: 'form-bottom' },
-      el('span', { className: 'privacy-note' }, icon('shield'), mode === 'profile' ? 'Ta progression reste inchangée.' : 'Ton profil reste sur cet appareil.'),
-      el('button', { type: 'submit', className: 'button' }, mode === 'profile' ? 'ENREGISTRER MON PROFIL' : 'CRÉER MON JOUEUR', icon(mode === 'profile' ? 'check' : 'arrow'))));
+      el('span', { className: 'privacy-note' }, icon('shield'), 'Ton profil reste sur cet appareil.'),
+      el('button', { type: 'submit', className: 'button' }, 'CRÉER MON JOUEUR', icon('arrow'))));
 }
 
-/* ---------- Carte interactive des stades (dans le formulaire) ---------- */
-const discoveredStadiums = new Set();
+/* ---------- Carte interactive des stades (section de l'accueil) ---------- */
 const stadiumById = id => STADIUMS.find(s => s.id === id) || null;
-const stadiumCountText = () => `Stades découverts : ${discoveredStadiums.size} / ${STADIUMS.length}`;
 
-function renderStadiumInfo(stadium, mode) {
+function renderStadiumInfo(stadium) {
   if (!stadium) {
     return [
       el('span', { className: 'map-info-tag' }, 'CARTE INTERACTIVE'),
-      el('strong', { className: 'map-info-title' }, 'Choisis ton stade de cœur'),
-      el('p', null, 'Huit stades mythiques t’attendent. Touche un point lumineux pour découvrir son histoire.')
+      el('strong', { className: 'map-info-title' }, 'Huit stades de légende'),
+      el('p', null, 'Clique sur un point lumineux de la carte pour découvrir le stade.')
     ];
   }
   return [
-    el('span', { className: 'map-info-tag' }, 'TON STADE DE CŒUR'),
+    el('span', { className: 'map-info-tag' }, stadium.country.toUpperCase()),
     el('strong', { className: 'map-info-title' }, stadium.name),
-    el('p', { className: 'map-info-place' }, `${stadium.city} · ${stadium.country}`),
+    el('p', { className: 'map-info-place' }, stadium.city),
     el('p', null, el('strong', null, 'Club : '), stadium.club),
     el('p', null, el('strong', null, 'Inauguré en : '), String(stadium.opened)),
-    el('p', null, stadium.fact),
-    el('button', { type: 'button', className: 'text-button', dataset: { stadiumClear: mode } }, icon('close'), 'Retirer mon choix')
+    el('p', null, stadium.fact)
   ];
 }
 
-function renderStadiumMap(mode, selectedId) {
+function renderStadiumMap() {
   const markers = STADIUMS.map(stadium => el('button', {
-      type: 'button',
-      className: 'map-marker' + (stadium.id === selectedId ? ' active' : '') + (discoveredStadiums.has(stadium.id) ? ' visited' : ''),
-      dataset: { stadium: stadium.id, mode }, 'aria-pressed': String(stadium.id === selectedId),
-      'aria-label': `${stadium.name}, ${stadium.city}`
-    }, el('span', { className: 'map-marker-label' }, stadium.city)));
-  return el('fieldset', { className: 'stadium-map' },
-    el('legend', null, 'Ton stade de cœur ', el('span', { className: 'muted' }, '(facultatif)')),
-    el('p', { className: 'map-help' }, 'Explore la carte : touche un stade pour le découvrir, puis garde-le comme stade de cœur.'),
+    type: 'button', className: 'map-marker', dataset: { stadium: stadium.id }, 'aria-label': `${stadium.name}, ${stadium.city}`
+  }, el('span', { className: 'map-marker-label' }, stadium.city)));
+  return el('section', { className: 'container home-map', 'aria-labelledby': 'map-title' },
+    el('div', { className: 'section-heading' },
+      el('div', null, eyebrow('DÉCOUVRE LES GRANDS STADES'), el('h2', { className: 'display', id: 'map-title' }, 'LA CARTE DES LÉGENDES.'))),
     el('div', { className: 'map-layout' },
-      el('div', { className: 'map-canvas', id: mode + '-map' },
+      el('div', { className: 'map-canvas', id: 'stadium-map' },
         svgEl('svg', { className: 'map-land', viewBox: '0 0 532 520', 'aria-hidden': 'true', preserveAspectRatio: 'none' }, svgEl('use', { href: '#map-land' })),
         markers),
-      el('div', { className: 'map-info', id: mode + '-map-info', 'aria-live': 'polite' }, renderStadiumInfo(stadiumById(selectedId), mode))),
-    el('p', { className: 'map-count', id: mode + '-map-count' }, stadiumCountText()),
-    el('input', { type: 'hidden', id: mode + '-stadium', name: 'stadium', value: selectedId }));
+      el('div', { className: 'map-info', id: 'map-info', 'aria-live': 'polite' }, renderStadiumInfo(null))));
 }
 
-// Met à jour la carte sans reconstruire le formulaire (les champs déjà remplis sont conservés).
-function refreshStadiumMap(mode) {
-  const input = byId(mode + '-stadium');
-  const canvas = byId(mode + '-map');
-  if (!input || !canvas) return;
-  const selectedId = input.value;
-  byClass('map-marker', canvas).forEach(marker => {
-    const active = marker.dataset.stadium === selectedId;
-    marker.classList.toggle('active', active);
-    marker.classList.toggle('visited', discoveredStadiums.has(marker.dataset.stadium));
-    marker.setAttribute('aria-pressed', String(active));
-  });
-  setContent(byId(mode + '-map-info'), renderStadiumInfo(stadiumById(selectedId), mode));
-  byId(mode + '-map-count').textContent = stadiumCountText();
-}
-
-function selectStadium(mode, id) {
-  const input = byId(mode + '-stadium');
-  if (!input || !stadiumById(id)) return;
-  discoveredStadiums.add(id);
-  input.value = id;
-  refreshStadiumMap(mode);
-}
-
-function clearStadium(mode) {
-  const input = byId(mode + '-stadium');
-  if (!input) return;
-  input.value = '';
-  refreshStadiumMap(mode);
+// Clic sur un stade : on allume son point et on affiche sa fiche, sans recharger la page.
+function showStadium(id) {
+  byClass('map-marker', byId('stadium-map')).forEach(marker => marker.classList.toggle('active', marker.dataset.stadium === id));
+  setContent(byId('map-info'), renderStadiumInfo(stadiumById(id)));
 }
 
 function progressTrack(percent, label, max = 100, now = percent) {
   const fill = el('span', { className: 'pct-' + clamp(Math.round(percent / 10) * 10, 0, 100) });
   return el('div', { className: 'progress-track', role: 'progressbar', 'aria-label': label, 'aria-valuemin': 0, 'aria-valuemax': max, 'aria-valuenow': now }, fill);
-}
-
-function progressBlock(percent, label = 'Progression du parcours') {
-  return el('div', { className: 'progress-block' },
-    el('div', { className: 'progress-label' }, el('span', null, label), el('strong', null, percent + ' %')),
-    progressTrack(percent, label));
 }
 
 function renderMissionCard(mission) {
@@ -620,7 +542,7 @@ function renderAudioPlayer() {
 
 function renderHome() {
   const hero = el('section', { className: 'hero', id: 'hero', 'aria-labelledby': 'hero-title' },
-    el('img', { className: 'hero-image', id: 'hero-image', src: HERO_IMAGE, alt: 'Un footballeur de dos, sous les projecteurs d’un stade', fetchpriority: 'high' }),
+    el('img', { className: 'hero-image', src: HERO_IMAGE, alt: 'Un footballeur de dos, sous les projecteurs d’un stade', fetchpriority: 'high' }),
     el('div', { className: 'stadium-beam', 'aria-hidden': 'true' }),
     el('div', { className: 'stadium-beam second', 'aria-hidden': 'true' }),
     el('div', { className: 'container hero-inner' },
@@ -629,13 +551,11 @@ function renderHome() {
       el('p', { className: 'hero-tagline' }, 'Deviens une légende !', el('span', { className: 'animated-ball', 'aria-hidden': 'true' }, icon('ball'))),
       el('p', { className: 'hero-copy' }, 'Du terrain du quartier aux plus grands stades.', el('br'), 'Apprends, relève les défis et écris ta propre histoire.'),
       el('div', { className: 'hero-actions' },
-        el('button', { type: 'button', className: 'button', dataset: { action: 'start' } }, 'COMMENCER MON VOYAGE ', icon('arrow')),
-        el('button', { type: 'button', className: 'text-button', dataset: { action: 'watch-video' } }, icon('play-circle'), 'Découvrir l’ambiance'))));
+        el('button', { type: 'button', className: 'button', dataset: { action: 'start' } }, 'COMMENCER MON VOYAGE ', icon('arrow')))));
 
   const path = el('section', { className: 'container home-path', 'aria-labelledby': 'home-path-title' },
     el('div', { className: 'section-heading' },
-      el('div', null, eyebrow('TON PARCOURS VERS LA GLOIRE'), el('h2', { className: 'display', id: 'home-path-title' }, 'TROIS ÉTAPES. UN RÊVE.')),
-      el('button', { type: 'button', className: 'text-button', dataset: { route: 'journey' } }, 'Tout le parcours ', icon('arrow'))),
+      el('div', null, eyebrow('TON PARCOURS VERS LA GLOIRE'), el('h2', { className: 'display', id: 'home-path-title' }, 'TROIS ÉTAPES. UN RÊVE.'))),
     el('div', { className: 'mission-grid' }, MISSIONS.map(renderMissionCard)));
 
   const player = state.profile ? renderHomePlayer() : el('section', { className: 'registration-section', id: 'registration', 'aria-labelledby': 'registration-title' },
@@ -644,23 +564,20 @@ function renderHome() {
         eyebrow('AVANT D’ENTRER SUR LE TERRAIN'),
         el('h2', { className: 'display', id: 'registration-title' }, 'TON MAILLOT', el('br'), 'T’ATTEND.'),
         el('p', null, 'Crée ton joueur pour commencer. Un pseudo, un objectif et toute une carrière à construire. Tous les champs sont obligatoires.')),
-      profileForm('register')));
+      profileForm()));
 
   const immersion = el('section', { className: 'container immersion', id: 'immersion', 'aria-labelledby': 'immersion-title' },
     el('div', { className: 'video-wrap' },
       el('video', { id: 'football-video', controls: true, playsinline: true, preload: 'none', poster: VIDEO_POSTER, 'aria-label': 'Séquence de football : des joueurs sur le terrain', 'aria-describedby': 'video-note' },
         el('source', { src: VIDEO_URL, type: 'video/mp4' }),
-        'Ton navigateur ne prend pas en charge la vidéo HTML5.'),
-      el('div', { className: 'video-error', id: 'video-error', role: 'status', hidden: true },
-        'La vidéo est momentanément indisponible. Ton parcours reste accessible.', el('br'),
-        el('a', { href: 'https://www.pexels.com/video/people-playing-soccer-6077691/', target: '_blank', rel: 'noopener noreferrer' }, 'Retrouver la vidéo sur Pexels'))),
+        'Ton navigateur ne prend pas en charge la vidéo HTML5.')),
     el('div', null,
       eyebrow('PLUS QU’UN JEU, UNE PASSION'),
       el('h2', { className: 'display', id: 'immersion-title' }, 'LE FRISSON', el('br'), 'DU TERRAIN.'),
       el('p', { className: 'immersion-copy', id: 'video-note' }, 'La pelouse, les projecteurs, le premier coup de sifflet. Mets-toi dans l’ambiance : ton aventure ne fait que commencer.'),
       renderAudioPlayer()));
 
-  return [hero, path, player, immersion];
+  return [hero, path, renderStadiumMap(), player, immersion];
 }
 
 function renderHomePlayer() {
@@ -670,48 +587,12 @@ function renderHomePlayer() {
       el('div', null,
         eyebrow('DANS TON VESTIAIRE'),
         el('h2', { className: 'display' }, 'BIENVENUE, ' + p.nickname + '.'),
-        el('p', { className: 'player-home-identity' }, `${p.firstName} ${p.lastName} · ${p.age} ans` + (stadiumById(p.stadium) ? ' · Stade de cœur : ' + stadiumById(p.stadium).name : ''))),
+        el('p', { className: 'player-home-identity' }, `${p.firstName} ${p.lastName} · ${p.age} ans`)),
       el('div', { className: 'home-metrics' },
         el('div', { className: 'home-metric' }, el('strong', null, completedCount(), el('small', { className: 'unit muted' }, ' / ' + MISSIONS.length)), el('span', null, 'Missions terminées')),
         el('div', { className: 'home-metric' }, el('strong', null, state.progressPercent, el('small', { className: 'unit' }, ' %')), el('span', null, 'Progression du parcours')),
-        el('button', { className: 'button secondary', type: 'button', dataset: { route: 'journey' } }, 'MON PARCOURS ', icon('arrow')))),
+        el('button', { className: 'button secondary', type: 'button', dataset: { action: 'start' } }, 'CONTINUER ', icon('arrow')))),
     el('div', { className: 'container player-progress' }, progressTrack(state.progressPercent, 'Progression globale')));
-}
-
-function renderJourneyRow(m) {
-  const done = state.missions[m.id].completed;
-  const available = canAccessMission(m.id);
-  const scoreText = done ? 'Mission accomplie'
-    : available ? m.items.length + ' éléments à classer'
-    : 'Termine la mission ' + m.id + ' pour continuer';
-  const action = available
-    ? el('button', { type: 'button', className: 'button' + (done ? ' secondary' : ''), dataset: { action: 'mission', id: m.id } },
-        done ? 'REVOIR' : correctCount(m.id) > 0 ? 'REPRENDRE' : 'C’EST PARTI', icon(done ? 'check' : 'arrow'))
-    : el('button', { type: 'button', className: 'locked-label', dataset: { action: 'mission', id: m.id }, 'aria-disabled': 'true' }, icon('lock'), 'Verrouillée');
-  return el('article', { className: 'journey-row ' + (done ? 'complete' : available ? 'available' : 'locked') },
-    el('img', { src: m.image, alt: '', loading: 'lazy' }),
-    el('div', { className: 'journey-row-content' },
-      el('span', { className: 'mission-age' }, `MISSION 0${m.id + 1} · ${m.age}`),
-      el('h2', { className: 'display' }, m.title),
-      el('p', null, m.intro),
-      el('div', { className: 'row-score' }, scoreText)),
-    action);
-}
-
-function renderJourney() {
-  const count = completedCount();
-  const plural = count > 1 ? 's' : '';
-  return el('div', { className: 'container page' },
-    el('div', { className: 'page-intro page-intro-row' },
-      el('div', null,
-        eyebrow('FOOTBALL JOURNEY'),
-        el('h1', { className: 'display' }, 'LA ROUTE VERS', el('br'), el('span', { className: 'accent' }, 'TA LÉGENDE.')),
-        el('p', { className: 'muted journey-tagline' }, 'Chaque étape se mérite. Commence petit, rêve grand, joue collectif.')),
-      progressBlock(state.progressPercent, `${count} mission${plural} terminée${plural} sur ${MISSIONS.length}`)),
-    el('div', { className: 'journey-list' }, MISSIONS.map(renderJourneyRow)),
-    completedCount() === MISSIONS.length ? el('div', { className: 'mission-bottom quiz-cta' },
-      el('p', null, 'Les trois missions sont terminées. ', el('strong', null, 'Le dernier défi t’attend.')),
-      el('button', { className: 'button', type: 'button', dataset: { route: 'quiz' } }, state.quiz.lastScore !== null ? 'REVOIR MON QUIZ' : 'ACCÉDER AU QUIZ FINAL', icon('trophy'))) : null);
 }
 
 // Un élément déplaçable : attribut draggable="true" (étape 1 du cours) et un id unique.
@@ -756,7 +637,7 @@ function renderMission() {
     : 'Fais glisser chaque élément avec la souris et lâche-le dans la bonne zone.';
 
   return el('div', { className: 'container page' },
-    el('button', { type: 'button', className: 'text-button back-link', dataset: { route: 'journey' } }, icon('arrow'), 'Retour au parcours'),
+    el('button', { type: 'button', className: 'text-button back-link', dataset: { route: 'home' } }, icon('arrow'), 'Retour à l’accueil'),
     el('div', { className: 'mission-heading' },
       el('div', null, eyebrow(`MISSION 0${m.id + 1} / 0${MISSIONS.length} · ${m.age}`), el('h1', { className: 'display' }, m.title), el('p', null, m.intro)),
 ),
@@ -886,12 +767,12 @@ function storedDataItems() {
 function renderSettings() {
   const loc = state.settings.location;
   const volume = Math.round(state.settings.volume * 100);
-  const stadium = stadiumById(state.profile.stadium);
   const group = (title, ...content) => el('section', { className: 'settings-group' }, el('h2', { className: 'display' }, title), content);
 
+  const p = state.profile;
   const playerGroup = group('MON JOUEUR',
-    profileForm('profile'),
-    stadium ? el('p', { className: 'setting-help wide' }, 'Stade de cœur : ' + stadium.name + ' (' + stadium.city + ')') : null);
+    el('ul', { className: 'stored-data' },
+      [['Prénom', p.firstName], ['Nom', p.lastName], ['Pseudo', p.nickname], ['Âge', p.age + ' ans']].map(([label, value]) => el('li', null, el('strong', null, label + ' : '), value))));
 
   const locationGroup = group('MA POSITION',
     el('div', { className: 'location-actions' },
@@ -940,36 +821,17 @@ function renderSettings() {
       el('div', null, musicGroup, displayGroup, dataGroup)));
 }
 
-const RENDERERS = { home: renderHome, journey: renderJourney, mission: renderMission, quiz: renderQuiz, hangman: renderHangman, settings: renderSettings };
+const RENDERERS = { home: renderHome, mission: renderMission, quiz: renderQuiz, hangman: renderHangman, settings: renderSettings };
 
 function renderCurrent(scrollToTop = false) {
   if (!state.profile && route !== 'home') route = 'home';
-  if (route === 'mission' && !canAccessMission(activeMission)) route = 'journey';
-  const oldY = window.scrollY;
-  const oldFocus = document.activeElement ? document.activeElement.id : '';
-  const form = route === 'settings' && !scrollToTop ? byId('profile-form') : null;
-  const draft = form ? Object.fromEntries(new FormData(form).entries()) : null;
+  if (route === 'mission' && !canAccessMission(activeMission)) route = 'home';
   renderHeader();
   setContent(main, RENDERERS[route]());
-  if (draft) {
-    Object.keys(draft).forEach(name => { const field = byId('profile-' + name); if (field) field.value = draft[name]; });
-    refreshStadiumMap('profile');
-  }
-  const titles = { home: 'Deviens une légende !', journey: 'Le parcours', mission: MISSIONS[activeMission].title, quiz: 'Quiz final', hangman: 'Pendu football', settings: 'Paramètres' };
+  const titles = { home: 'Deviens une légende !', mission: MISSIONS[activeMission].title, quiz: 'Quiz final', hangman: 'Pendu football', settings: 'Paramètres' };
   document.title = 'FOOTBALL JOURNEY - ' + titles[route];
   if (route === 'mission') activerDragAndDrop();
-  attachMediaHandlers();
-  updateStorageStatus();
-  if (scrollToTop) {
-    main.classList.remove('view-enter');
-    void main.offsetWidth;
-    main.classList.add('view-enter');
-    main.focus({ preventScroll: true });
-    window.scrollTo({ top: 0, behavior: 'instant' });
-  } else {
-    if (oldFocus && byId(oldFocus)) focusById(oldFocus);
-    window.scrollTo({ top: oldY, behavior: 'instant' });
-  }
+  if (scrollToTop) window.scrollTo(0, 0);
 }
 
 /* ==========================================================================
@@ -988,7 +850,7 @@ function requestProfile() {
 }
 
 function navigate(destination, missionId = 0) {
-  if (!['home', 'journey', 'mission', 'quiz', 'hangman', 'settings'].includes(destination)) return;
+  if (!['home', 'mission', 'quiz', 'hangman', 'settings'].includes(destination)) return;
   if (destination !== 'home' && !requestProfile()) return;
   if (destination === 'mission' && !canAccessMission(missionId)) {
     notify('Cette mission est encore verrouillée. Termine d’abord la mission précédente.', 'error');
@@ -1015,80 +877,35 @@ function setMenuButton(button, expanded) {
   setContent(button, icon(expanded ? 'close' : 'menu'));
 }
 
-function closeMobileMenu(focusButton = false) {
+function closeMobileMenu() {
   const nav = byId('primary-nav');
-  if (!nav || !nav.classList.contains('open')) return false;
+  if (!nav || !nav.classList.contains('open')) return;
   nav.classList.remove('open');
-  const button = byId('menu-button');
-  if (button) {
-    setMenuButton(button, false);
-    if (focusButton) button.focus();
-  }
-  return true;
+  setMenuButton(byId('menu-button'), false);
 }
 
 /* ==========================================================================
-   7. FENÊTRES DE DIALOGUE ET INSCRIPTION DU JOUEUR
+   7. INSCRIPTION DU JOUEUR
    ========================================================================== */
-function closeDialog() {
-  dialogConfirm = null;
-  if (appDialog.open) appDialog.close();
-}
-
-// copy et actions sont des nœuds (ou tableaux de nœuds / textes), jamais du HTML en texte.
-function openDialog(title, copy, actions, kind = 'info') {
-  closeDialog();
-  appDialog.className = 'app-dialog' + (kind === 'success' ? ' success-dialog' : '');
-  setContent(byId('dialog-content'),
-    kind === 'success' ? el('div', { className: 'confetti', 'aria-hidden': 'true' }, Array.from({ length: 20 }, () => el('i'))) : null,
-    el('div', { className: 'dialog-icon' }, icon(kind === 'success' ? 'trophy' : kind === 'danger' ? 'info' : 'shield')),
-    el('h2', { id: 'dialog-title' }, title),
-    el('div', { className: 'dialog-copy' }, copy),
-    el('div', { className: 'dialog-actions' }, actions));
-  appDialog.showModal();
-}
-
-function confirmAction(title, copy, buttonLabel, callback, danger = false) {
-  openDialog(title, copy, [
-    el('button', { type: 'button', className: 'button secondary', dataset: { action: 'close-dialog' }, autofocus: true }, 'ANNULER'),
-    el('button', { type: 'button', className: 'button' + (danger ? ' danger' : ''), dataset: { action: 'confirm-dialog' } }, buttonLabel)
-  ], danger ? 'danger' : 'info');
-  dialogConfirm = callback;
-}
-
 function submitProfile(form) {
-  const mode = form.dataset.form;
-  if (!['register', 'profile'].includes(mode)) return;
-  if (mode === 'profile' && !state.profile) { requestProfile(); return; }
-  if (mode === 'register' && state.profile) { notify('Ton joueur existe déjà. Tu peux le modifier dans les paramètres.'); return; }
+  if (state.profile) return;
   const checked = validateProfile(Object.fromEntries(new FormData(form).entries()));
   PROFILE_FIELDS.forEach(([name]) => {
-    byId(`${mode}-${name}-error`).textContent = '';
-    byId(`${mode}-${name}`).removeAttribute('aria-invalid');
+    byId(`register-${name}-error`).textContent = checked.errors[name] || '';
+    byId(`register-${name}`).setAttribute('aria-invalid', String(Boolean(checked.errors[name])));
   });
-  const summary = byId(mode + '-summary');
+  const summary = byId('register-summary');
   summary.hidden = checked.valid;
   if (!checked.valid) {
     summary.textContent = 'Encore un petit effort : vérifie les champs indiqués.';
-    Object.keys(checked.errors).forEach(name => {
-      byId(`${mode}-${name}-error`).textContent = checked.errors[name];
-      byId(`${mode}-${name}`).setAttribute('aria-invalid', 'true');
-    });
-    byId(`${mode}-${Object.keys(checked.errors)[0]}`).focus();
+    byId('register-' + Object.keys(checked.errors)[0]).focus();
     return;
   }
-  const save = () => {
-    state.profile = checked.profile;
-    const saved = persist();
-    if (mode === 'register') { route = 'home'; renderCurrent(true); }
-    else renderCurrent(false);
-    notify(mode === 'register'
-      ? 'Bienvenue ' + state.profile.nickname + ' ! Ton maillot est prêt.' + (saved ? ' À toi d’écrire l’histoire.' : ' Attention : le navigateur ne permet pas de sauvegarder ce profil.')
-      : saved ? 'Profil enregistré. Ta progression est conservée.' : 'Profil modifié pour cette visite. La sauvegarde locale est indisponible.', saved ? 'success' : 'error');
-  };
-  if (mode === 'register') save();
-  else if (JSON.stringify(checked.profile) === JSON.stringify(state.profile)) notify('Ton profil est déjà à jour.');
-  else confirmAction('UN NOUVEAU MAILLOT ?', 'Enregistrer les modifications de ton profil ? Ton parcours restera inchangé.', 'ENREGISTRER', save);
+  state.profile = checked.profile;
+  persist();
+  route = 'home';
+  renderCurrent(true);
+  notify('Bienvenue ' + state.profile.nickname + ' ! Ton maillot est prêt.', 'success');
 }
 
 /* ==========================================================================
@@ -1173,26 +990,16 @@ function verifierDepot(draggedElement, container) {
 
 function finishMission(id) {
   if (!state.profile || route !== 'mission' || activeMission !== id || !canAccessMission(id)) return;
-  if (state.missions[id].completed) return;
-  if (correctCount(id) !== MISSIONS[id].items.length) { notify('Associe correctement tous les éléments avant de terminer la mission.', 'error'); return; }
+  if (state.missions[id].completed || correctCount(id) !== MISSIONS[id].items.length) return;
   state.missions[id].completed = true;
   persist();
-  missionFeedback = null;
+  const next = id === MISSIONS.length - 1 ? 'Les trois missions sont terminées : place au quiz final !' : 'La mission suivante est débloquée : ' + MISSIONS[id + 1].title + '.';
+  missionFeedback = { mission: id, type: 'success', message: `Mission accomplie ! Bravo ${state.profile.nickname}. ${next}` };
   renderCurrent(false);
-  const last = id === MISSIONS.length - 1;
-  openDialog('MISSION ACCOMPLIE !', [
-    `Bravo ${state.profile.nickname} ! Tu as terminé « ${MISSIONS[id].title} ».`, el('br'),
-    last ? ['Les trois missions sont terminées. ', el('strong', null, 'Place au quiz final !')]
-      : ['La mission suivante est débloquée : ', el('strong', null, MISSIONS[id + 1].title + '.')]
-  ], [
-    el('button', { type: 'button', className: 'button secondary', dataset: { route: 'journey' } }, 'MON PARCOURS'),
-    el('button', { type: 'button', className: 'button', dataset: { action: 'next-mission', id } }, last ? 'LE QUIZ FINAL' : 'MISSION SUIVANTE', icon('arrow'))
-  ], 'success');
 }
 
 function goToNextMission(id) {
   if (!state.missions[id] || !state.missions[id].completed) return;
-  closeDialog();
   if (id === MISSIONS.length - 1) navigate('quiz');
   else navigate('mission', id + 1);
 }
@@ -1204,7 +1011,6 @@ function chooseQuizAnswer(option) {
   if (!state.profile || route !== 'quiz' || !quizRun || !Number.isInteger(option) || option < 0 || option > 3) return;
   quizRun.answers[quizRun.index] = option;
   renderCurrent(false);
-  focusById('quiz-option-' + option);
 }
 function advanceQuiz() {
   if (!state.profile || route !== 'quiz' || !quizRun) return;
@@ -1302,8 +1108,8 @@ function getLocation() {
 function showPosition(position) {
   if (!locationBusy || !state.profile) return;
   state.settings.location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy, timestamp: position.timestamp };
-  const saved = persist();
-  showGeoMessage(saved ? 'Position enregistrée sur cet appareil.' : 'Position obtenue pour cette visite, mais la sauvegarde locale est indisponible.', saved ? 'success' : 'error');
+  persist();
+  showGeoMessage('Position enregistrée sur cet appareil.', 'success');
 }
 
 // Erreur : codes du cours (PERMISSION_DENIED, POSITION_UNAVAILABLE, TIMEOUT).
@@ -1328,8 +1134,8 @@ function clearLocation() {
   if (!state.profile) return;
   locationBusy = false;
   state.settings.location = null;
-  const saved = persist();
-  locationMessage = { text: saved ? 'Ta position a été effacée de la sauvegarde. Aucun suivi n’est actif.' : 'Position retirée pour cette visite uniquement. Le navigateur a refusé la modification de la sauvegarde ; efface les données du site dans ses paramètres pour la supprimer définitivement.', type: saved ? 'success' : 'error' };
+  persist();
+  locationMessage = { text: 'Ta position a été effacée.', type: 'success' };
   if (route === 'settings') renderCurrent(false);
   notify(locationMessage.text, locationMessage.type);
 }
@@ -1337,21 +1143,19 @@ function clearLocation() {
 // Supprime le joueur et toutes ses données : localStorage.clear() et sessionStorage.clear().
 function clearAllData() {
   if (!state.profile) return;
-  confirmAction('TOUT EFFACER ?', 'Ton profil, ta progression, tes scores et tes réglages seront supprimés de cet appareil. Le formulaire d’inscription s’affichera de nouveau.', 'TOUT EFFACER', () => {
-    if (storageSupported()) {
-      localStorage.clear();
-      sessionStorage.clear();
-    }
-    pauseMusic();
-    state = freshState();
-    quizRun = null;
-    missionFeedback = null;
-    locationBusy = false;
-    locationMessage = null;
-    applySettings();
-    navigate('home');
-    notify('Toutes les données ont été effacées. Crée un nouveau joueur pour recommencer.', 'success');
-  }, true);
+  if (!confirm('Supprimer ton joueur, ta progression et tes réglages de cet appareil ?')) return;
+  if (storageSupported()) {
+    localStorage.clear();
+    sessionStorage.clear();
+  }
+  pauseMusic();
+  state = freshState();
+  quizRun = null;
+  missionFeedback = null;
+  locationMessage = null;
+  applySettings();
+  navigate('home');
+  notify('Toutes les données ont été effacées. Crée un nouveau joueur pour recommencer.', 'success');
 }
 
 /* ==========================================================================
@@ -1399,55 +1203,12 @@ function refreshAudioUI() {
 }
 
 /* ==========================================================================
-   13. IMAGES ET VIDÉO
-   ========================================================================== */
-function showVideoError() {
-  const error = document.getElementById('video-error');
-  if (error) error.hidden = false;
-}
-
-function attachMediaHandlers() {
-  listOf(main.getElementsByTagName('img')).forEach(img => {
-    const fallback = () => {
-      img.classList.add('img-failed');
-      if (img.id === 'hero-image' && !byId('hero-media-error')) {
-        const hero = byId('hero');
-        if (hero) hero.appendChild(el('p', { className: 'hero-media-error', id: 'hero-media-error' }, 'Photo du stade indisponible. L’aventure continue.'));
-      }
-    };
-    img.addEventListener('error', fallback, { once: true });
-    if (img.complete && img.naturalWidth === 0 && img.currentSrc) fallback();
-  });
-  const video = byId('football-video');
-  if (video) {
-    video.addEventListener('error', showVideoError);
-    const source = video.getElementsByTagName('source')[0];
-    if (source) source.addEventListener('error', showVideoError);
-    video.addEventListener('play', () => { if (musicPlaying) pauseMusic(); });
-    video.addEventListener('loadedmetadata', () => { const error = byId('video-error'); if (error) error.hidden = true; });
-  }
-}
-function watchVideo() {
-  if (route !== 'home') navigate('home');
-  document.getElementById('immersion')?.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'center' });
-  const video = document.getElementById('football-video');
-  if (!video) return;
-  const promise = video.play();
-  if (promise) promise.catch(error => {
-    if (error.name === 'AbortError') return;
-    if (video.error) showVideoError();
-    notify('La lecture n’a pas pu démarrer. Utilise les commandes de la vidéo ; si la source est indisponible, le lien Pexels est proposé.', 'error');
-  });
-}
-
-/* ==========================================================================
-   14. ÉCOUTEURS D'ÉVÉNEMENTS (addEventListener uniquement, délégation sur document)
+   13. ÉCOUTEURS D'ÉVÉNEMENTS (addEventListener uniquement, délégation sur document)
    ========================================================================== */
 document.addEventListener('submit', event => {
-  const form = findUp(eventElement(event), node => node.tagName === 'FORM' && node.dataset.form !== undefined);
-  if (!form) return;
+  if (event.target.id !== 'register-form') return;
   event.preventDefault();
-  submitProfile(form);
+  submitProfile(event.target);
 });
 
 document.addEventListener('click', event => {
@@ -1456,16 +1217,13 @@ document.addEventListener('click', event => {
   if (!byId('site-header').contains(target)) closeMobileMenu();
 
   const marker = upData(target, 'stadium');
-  if (marker) { selectStadium(marker.dataset.mode, marker.dataset.stadium); return; }
-  const stadiumClear = upData(target, 'stadiumClear');
-  if (stadiumClear) { clearStadium(stadiumClear.dataset.stadiumClear); return; }
+  if (marker) { showStadium(marker.dataset.stadium); return; }
   const quizOption = upData(target, 'quizOption');
   if (quizOption) { chooseQuizAnswer(Number(quizOption.dataset.quizOption)); return; }
   const letter = upData(target, 'letter');
   if (letter) { if (!letter.disabled) guessLetter(letter.dataset.letter); return; }
   const navButton = upData(target, 'route');
   if (navButton) {
-    if (appDialog.contains(navButton)) closeDialog();
     navigate(navButton.dataset.route);
     return;
   }
@@ -1482,7 +1240,6 @@ document.addEventListener('click', event => {
     case 'mission': navigate('mission', Number(button.dataset.id)); break;
     case 'finish-mission': finishMission(Number(button.dataset.id)); break;
     case 'next-mission': goToNextMission(Number(button.dataset.id)); break;
-    case 'watch-video': watchVideo(); break;
     case 'music': toggleMusic(); break;
     case 'theme': setTheme(state.settings.theme === 'dark' ? 'light' : 'dark'); break;
     case 'set-theme': setTheme(button.dataset.themeChoice); break;
@@ -1493,8 +1250,6 @@ document.addEventListener('click', event => {
     case 'geolocation': getLocation(); break;
     case 'clear-location': clearLocation(); break;
     case 'clear-all': clearAllData(); break;
-    case 'close-dialog': closeDialog(); break;
-    case 'confirm-dialog': { const callback = dialogConfirm; closeDialog(); if (callback) callback(); break; }
     case 'dismiss-toast': byId('toast').classList.remove('visible'); break;
   }
 });
@@ -1522,32 +1277,10 @@ document.addEventListener('input', event => {
   }
 });
 
-document.addEventListener('keydown', event => {
-  if (appDialog.open) return;
-  if (event.key === 'Escape' && closeMobileMenu(true)) { event.preventDefault(); return; }
-  const target = eventElement(event);
-  const inInput = target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable);
-  if (inInput || event.ctrlKey || event.altKey || event.metaKey) return;
-  const quizOption = upData(target, 'quizOption');
-  if (route === 'quiz' && quizOption && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
-    event.preventDefault();
-    const direction = ['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 1;
-    chooseQuizAnswer((Number(quizOption.dataset.quizOption) + direction + 4) % 4);
-  }
-});
-
-appDialog.addEventListener('click', event => {
-  if (event.target !== appDialog) return;
-  const rect = appDialog.getBoundingClientRect();
-  if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) closeDialog();
-});
-appDialog.addEventListener('close', () => { if (!appDialog.open) dialogConfirm = null; });
-document.addEventListener('visibilitychange', () => { if (document.hidden && musicPlaying) pauseMusic(); });
 // Événement storage (cours) : déclenché quand un AUTRE onglet du site modifie le localStorage.
 window.addEventListener('storage', event => {
   if (event.storageArea !== localStorage) return;
   if (event.key !== null && !LOCAL_KEYS.includes(event.key)) return;
-  closeDialog();
   state = readState();
   applySettings();
   missionFeedback = null;
@@ -1556,9 +1289,8 @@ window.addEventListener('storage', event => {
 });
 
 /* ==========================================================================
-   15. DÉMARRAGE DU SITE
+   14. DÉMARRAGE DU SITE
    ========================================================================== */
 deriveState(state);
 applySettings();
 renderCurrent();
-if (loadWarning) notify(loadWarning, 'error');
