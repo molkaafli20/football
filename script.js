@@ -8,7 +8,7 @@
    ========================================================================== */
 
 /* ==========================================================================
-   1. DONNÉES DU JEU : missions, questions du quiz, mots du pendu, badges
+   1. DONNÉES DU JEU : missions, questions du quiz, mots du pendu, stades
    ========================================================================== */
 // Web Storage (cours) : chaque information a sa propre clé dans le localStorage.
 const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'stade', 'volume', 'mode', 'luminosite',
@@ -91,14 +91,6 @@ const QUESTIONS = [
   { question: 'Quel est l’objectif principal d’une équipe pendant un match ?', options: ['Faire le plus de remplacements', 'Garder le ballon sans attaquer', 'Obtenir le plus de cartons', 'Marquer plus de buts que l’adversaire'], correct: 3, explanation: 'Le vainqueur est l’équipe qui a inscrit le plus de buts à la fin de la rencontre.' }
 ];
 
-const BADGES = [
-  { id: 'first', label: 'Premier pas', description: 'Terminer la mission 1', icon: 'flag', condition: s => s.missions[0].completed },
-  { id: 'promising', label: 'Joueur prometteur', description: 'Terminer la mission 2', icon: 'boot', condition: s => s.missions[1].completed },
-  { id: 'legend', label: 'Jeune talent', description: 'Terminer les 3 missions', icon: 'star', condition: s => s.missions.every(m => m.completed) },
-  { id: 'quiz', label: 'Champion du quiz', description: 'Obtenir au moins 8/10', icon: 'check-circle', condition: s => s.quiz.lastScore !== null && s.quiz.lastScore >= 8 },
-  { id: 'hangman', label: 'Maître du Pendu', description: 'Gagner une partie', icon: 'pendu', condition: s => s.hangman.everWon }
-];
-
 // Carte interactive du formulaire (Europe et Afrique du Nord) : la position de chaque stade est dans style.css.
 const STADIUMS = [
   { id: 'old-trafford', name: 'Old Trafford', city: 'Manchester', country: 'Angleterre', club: 'Manchester United', opened: 1910, fact: 'Surnommé « le théâtre des rêves », c’est l’un des plus anciens grands stades d’Angleterre.' },
@@ -118,10 +110,10 @@ function freshState() {
   return {
     profile: null,
     settings: { volume: .35, theme: 'dark', brightness: 100, location: null },
-    missions: MISSIONS.map(() => ({ answers: {}, completed: false, score: 0 })),
+    missions: MISSIONS.map(() => ({ answers: {}, completed: false })),
     quiz: { lastScore: null },                      // dernier score du quiz (sur 10)
-    hangman: { lastResult: null, everWon: false },   // dernier résultat du pendu
-    totalPoints: 0, badges: [], progressPercent: 0
+    hangman: { lastResult: null },                  // dernier résultat du pendu
+    progressPercent: 0
   };
 }
 
@@ -132,8 +124,6 @@ const completedCount = (s = state) => s.missions.filter(m => m.completed).length
 // Une mission est ouverte quand toutes les précédentes sont terminées.
 const canAccessMission = (id, s = state) => Number.isInteger(id) && id >= 0 && id < MISSIONS.length && s.missions.slice(0, id).every(m => m.completed);
 const correctCount = (id, s = state) => MISSIONS[id].items.filter(item => s.missions[id].answers[item.id] === item.target).length;
-const levelName = (s = state) => ['Débutant', 'Apprenti', 'Joueur prometteur', 'Jeune talent'][completedCount(s)];
-const formatPoints = n => Number(n).toLocaleString('fr-FR');
 const nextMission = () => state.missions.findIndex(m => !m.completed);
 
 function validateProfile(input) {
@@ -154,8 +144,7 @@ function validateProfile(input) {
   return { profile, errors, valid: Object.keys(errors).length === 0 };
 }
 
-// Calcule les scores : 10 points par bonne association, 100 points par mission terminée,
-// 10 points par bonne réponse au dernier quiz.
+// Garde seulement les bonnes réponses et calcule la progression du parcours.
 function deriveState(s) {
   let previousComplete = true;
   s.missions.forEach((mission, index) => {
@@ -163,12 +152,9 @@ function deriveState(s) {
     MISSIONS[index].items.forEach(item => { if (previousComplete && mission.answers[item.id] === item.target) answers[item.id] = item.target; });
     mission.answers = answers;
     mission.completed = previousComplete && mission.completed === true && Object.keys(answers).length === MISSIONS[index].items.length;
-    mission.score = Object.keys(answers).length * 10 + (mission.completed ? 100 : 0);
     previousComplete = mission.completed;
   });
-  s.totalPoints = s.missions.reduce((sum, mission) => sum + mission.score, 0) + (s.quiz.lastScore || 0) * 10;
   s.progressPercent = Math.round(completedCount(s) / MISSIONS.length * 100);
-  s.badges = BADGES.filter(badge => badge.condition(s)).map(badge => badge.id);
   return s;
 }
 
@@ -195,7 +181,6 @@ function normalizeState(raw) {
   }
   if (isObject(raw.quiz) && isScore(raw.quiz.lastScore)) s.quiz.lastScore = raw.quiz.lastScore;
   if (isObject(raw.hangman)) {
-    s.hangman.everWon = raw.hangman.everWon === true;
     const last = raw.hangman.lastResult;
     if (isObject(last) && typeof last.won === 'boolean' && typeof last.word === 'string' && Number.isInteger(last.errors)) s.hangman.lastResult = last;
   }
@@ -387,7 +372,7 @@ function saveState(s) {
     ['dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu'].forEach(key => localStorage.removeItem(key));
   }
   // Missions et dernier score du quiz : une seule chaîne de caractères (JSON).
-  localStorage.setItem('progression', JSON.stringify({ missions: s.missions, quiz: s.quiz, hangman: { everWon: s.hangman.everWon } }));
+  localStorage.setItem('progression', JSON.stringify({ missions: s.missions, quiz: s.quiz }));
 }
 
 function persist() {
@@ -446,7 +431,7 @@ function getHangmanStatus(game) {
 const NAVIGATION = [
   ['home', 'Accueil', 'home'], ['journey', 'Football Journey', 'route'],
   ['quiz', 'Quiz final', 'trophy'], ['hangman', 'Pendu', 'pendu'],
-  ['dashboard', 'Tableau de bord', 'chart'], ['settings', 'Paramètres', 'settings']
+  ['settings', 'Paramètres', 'settings']
 ];
 const PROFILE_FIELDS = [
   ['firstName', 'Prénom', 'text', 'Ex. Alex', 'given-name'],
@@ -685,20 +670,19 @@ function renderHomePlayer() {
       el('div', null,
         eyebrow('DANS TON VESTIAIRE'),
         el('h2', { className: 'display' }, 'BIENVENUE, ' + p.nickname + '.'),
-        el('p', { className: 'player-home-identity' }, `${p.firstName} ${p.lastName} · ${p.age} ans · ${levelName()}` + (stadiumById(p.stadium) ? ' · Stade de cœur : ' + stadiumById(p.stadium).name : ''))),
+        el('p', { className: 'player-home-identity' }, `${p.firstName} ${p.lastName} · ${p.age} ans` + (stadiumById(p.stadium) ? ' · Stade de cœur : ' + stadiumById(p.stadium).name : ''))),
       el('div', { className: 'home-metrics' },
-        el('div', { className: 'home-metric' }, el('strong', { className: 'accent' }, formatPoints(state.totalPoints)), el('span', null, 'Points au compteur')),
         el('div', { className: 'home-metric' }, el('strong', null, completedCount(), el('small', { className: 'unit muted' }, ' / ' + MISSIONS.length)), el('span', null, 'Missions terminées')),
         el('div', { className: 'home-metric' }, el('strong', null, state.progressPercent, el('small', { className: 'unit' }, ' %')), el('span', null, 'Progression du parcours')),
-        el('button', { className: 'button secondary', type: 'button', dataset: { route: 'dashboard' } }, 'MON TABLEAU DE BORD ', icon('arrow')))),
+        el('button', { className: 'button secondary', type: 'button', dataset: { route: 'journey' } }, 'MON PARCOURS ', icon('arrow')))),
     el('div', { className: 'container player-progress' }, progressTrack(state.progressPercent, 'Progression globale')));
 }
 
 function renderJourneyRow(m) {
   const done = state.missions[m.id].completed;
   const available = canAccessMission(m.id);
-  const scoreText = done ? state.missions[m.id].score + ' points obtenus · Mission accomplie'
-    : available ? '+' + (m.items.length * 10 + 100) + ' points à décrocher'
+  const scoreText = done ? 'Mission accomplie'
+    : available ? m.items.length + ' éléments à classer'
     : 'Termine la mission ' + m.id + ' pour continuer';
   const action = available
     ? el('button', { type: 'button', className: 'button' + (done ? ' secondary' : ''), dataset: { action: 'mission', id: m.id } },
@@ -765,8 +749,8 @@ function renderMission() {
   const feedbackType = feedback ? feedback.type : saved.completed ? 'success' : '';
   const feedbackIcon = feedback ? (feedback.type === 'success' ? 'check-circle' : 'info') : saved.completed ? 'check-circle' : 'info';
   const feedbackText = feedback ? feedback.message
-    : saved.completed ? 'Mission accomplie ! Tes points et ton badge sont déjà enregistrés.'
-    : 'Chaque bonne association rapporte 10 points. Une erreur ? Prends le temps de comprendre, puis réessaie.';
+    : saved.completed ? 'Mission accomplie ! Ta progression est enregistrée.'
+    : 'Une erreur ? Lis l’explication, puis réessaie.';
   const helpText = allCorrect
     ? 'Toutes les associations sont correctes. ' + (saved.completed ? 'Tu peux continuer ton parcours.' : 'Valide maintenant ta mission pour débloquer la suite.')
     : 'Fais glisser chaque élément avec la souris et lâche-le dans la bonne zone.';
@@ -775,9 +759,7 @@ function renderMission() {
     el('button', { type: 'button', className: 'text-button back-link', dataset: { route: 'journey' } }, icon('arrow'), 'Retour au parcours'),
     el('div', { className: 'mission-heading' },
       el('div', null, eyebrow(`MISSION 0${m.id + 1} / 0${MISSIONS.length} · ${m.age}`), el('h1', { className: 'display' }, m.title), el('p', null, m.intro)),
-      el('div', { className: 'mission-points' },
-        el('strong', null, saved.score, el('small', null, ' PTS')),
-        el('span', null, `sur ${m.items.length * 10 + 100} possibles`))),
+),
     el('div', { className: 'mission-objective' }, icon('flag'), el('span', null, el('strong', null, 'Ton objectif :'), ' ' + m.objective)),
     el('section', { className: 'activity activity-' + m.type, 'aria-labelledby': 'activity-title' },
       el('div', { className: 'activity-heading' },
@@ -793,7 +775,7 @@ function renderMission() {
           el('div', { className: 'target-zones' }, zones))),
       el('div', { className: 'feedback' + (feedbackType ? ' ' + feedbackType : ''), role: 'status', 'aria-live': 'polite' }, icon(feedbackIcon), el('span', null, feedbackText)),
       el('div', { className: 'mission-bottom' },
-        el('p', null, saved.completed ? 'Bonus de mission déjà obtenu. Revoir ne rapporte pas de points supplémentaires.' : [el('strong', null, '+100 points bonus'), ' en terminant cette mission.']),
+        el('p', null, saved.completed ? 'Mission déjà terminée.' : 'Place tous les éléments pour terminer la mission.'),
         saved.completed
           ? el('button', { type: 'button', className: 'button', dataset: { action: 'next-mission', id: m.id } }, m.id === MISSIONS.length - 1 ? 'LE QUIZ FINAL M’ATTEND' : 'MISSION SUIVANTE', icon('arrow'))
           : el('button', { type: 'button', className: 'button', id: 'finish-mission', dataset: { action: 'finish-mission', id: m.id }, disabled: !allCorrect }, 'TERMINER LA MISSION ', icon('check')))));
@@ -809,7 +791,7 @@ function renderQuiz() {
     el('div', { className: 'page-intro' },
       eyebrow('LE DERNIER DÉFI'),
       el('h1', { className: 'display' }, 'LE QUIZ DES ', el('span', { className: 'accent' }, 'LÉGENDES.')),
-      el('p', null, 'Dix questions sur le football. 10 points par bonne réponse.')),
+      el('p', null, 'Dix questions sur le football.')),
     el('div', { className: 'quiz-shell' },
       el('div', { className: 'quiz-topline' }, el('span', null, `QUESTION ${step} SUR 10`), el('span', null, step * 10 + ' %')),
       progressTrack(step * 10, 'Progression du quiz', 10, step),
@@ -842,9 +824,8 @@ function renderQuizResult() {
         ring, el('span', { className: 'ring-text' }, score, el('small', null, ' / 10'))),
       // Message final demandé par le sujet : « Bravo [pseudo], tu as réussi [X]% de ta mission ! »
       el('p', { className: 'result-message' }, el('strong', null, `Bravo ${state.profile.nickname}, tu as réussi ${percentage}% de ta mission !`)),
-      el('p', { className: 'result-total' }, 'Ton score global : ', el('strong', null, formatPoints(state.totalPoints) + ' points')),
       el('div', { className: 'result-actions' },
-        el('button', { type: 'button', className: 'button', dataset: { route: 'dashboard' } }, 'MON TABLEAU DE BORD', icon('arrow')),
+        el('button', { type: 'button', className: 'button', dataset: { route: 'hangman' } }, 'JOUER AU PENDU', icon('arrow')),
         el('button', { type: 'button', className: 'button secondary', dataset: { action: 'quiz-retry' } }, icon('replay'), 'REJOUER'))));
 }
 
@@ -885,68 +866,6 @@ function renderHangman() {
         el('div', { className: 'game-bottom' },
           el('button', { type: 'button', id: 'hangman-replay', className: 'button' + (status.finished ? '' : ' secondary'), dataset: { action: 'hangman-replay' } }, icon('replay'), 'REJOUER'),
           el('p', null, 'Ton dernier résultat est enregistré dans le localStorage.')))));
-}
-
-function renderDashboard() {
-  const p = state.profile;
-  const next = nextMission();
-  const last = state.hangman.lastResult;
-  const metric = (label, ...content) => el('div', { className: 'dashboard-metric' }, el('span', null, label), content);
-
-  const rows = MISSIONS.map(m => {
-    const done = state.missions[m.id].completed;
-    const available = canAccessMission(m.id);
-    return el('tr', null,
-      el('td', null, el('span', { className: 'table-mission' }, el('span', { className: 'table-number' }, '0' + (m.id + 1)), m.title)),
-      el('td', null, `${correctCount(m.id)} / ${m.items.length}`),
-      el('td', null, done ? '+100 pts' : '-'),
-      el('td', null, `${state.missions[m.id].score} / ${m.items.length * 10 + 100} pts`),
-      el('td', null, el('span', { className: 'status-text' + (done ? ' done' : '') }, icon(done ? 'check-circle' : available ? 'play' : 'lock'), done ? 'Terminée' : available ? 'Disponible' : 'Verrouillée')),
-      el('td', null, el('button', { className: 'text-button', type: 'button', dataset: { action: 'mission', id: m.id }, 'aria-label': `${done ? 'Revoir' : 'Ouvrir'} la mission ${m.id + 1}` }, icon('arrow'))));
-  });
-  const table = el('table', { className: 'mission-table' },
-    el('thead', null, el('tr', null, ['MISSION', 'ASSOCIATIONS', 'BONUS', 'SCORE', 'STATUT'].map(title => el('th', null, title)), el('th', null, el('span', { 'aria-label': 'Action' })))),
-    el('tbody', null, rows));
-
-  const quizTitle = state.quiz.lastScore !== null ? `Dernier score : ${state.quiz.lastScore}/10 (${state.quiz.lastScore * 10} %)` : 'Le quiz t’attend.';
-  const quizInfo = '10 questions · 10 points par bonne réponse';
-  const hangTitle = last ? (last.won ? 'Victoire' : 'Défaite') + ' · ' + last.word : 'Ton premier mot t’attend.';
-  const hangInfo = last ? last.errors + ' erreur' + (last.errors > 1 ? 's' : '') + ' sur 6' : 'Un mot mystère, six chances.';
-  const resultBlock = (title, line, info, side, routeName, linkLabel) => el('section', { className: 'dashboard-result' },
-    el('h2', { className: 'display' }, title),
-    el('div', { className: 'dashboard-result-line' }, el('div', null, el('strong', null, line), el('p', null, info)), el('span', null, side)),
-    el('button', { type: 'button', className: 'text-button result-link', dataset: { route: routeName } }, linkLabel, icon('arrow')));
-
-  return el('div', { className: 'container page' },
-    el('div', { className: 'dashboard-profile' },
-      el('div', { className: 'dashboard-identity' },
-        el('span', { className: 'avatar dashboard-avatar' }, initialsOf(p)),
-        el('div', null, eyebrow('TON TABLEAU DE BORD'), el('h1', null, p.nickname), el('p', null, `${p.firstName} ${p.lastName} · ${p.age} ans` + (stadiumById(p.stadium) ? ' · ' + stadiumById(p.stadium).name : '')))),
-      el('div', { className: 'dashboard-level' }, eyebrow('TON NIVEAU ACTUEL'), el('strong', null, levelName()))),
-    el('div', { className: 'dashboard-metrics' },
-      metric('POINTS AU COMPTEUR', el('strong', { className: 'accent' }, formatPoints(state.totalPoints) + ' ', el('small', null, 'PTS'))),
-      metric('MISSIONS TERMINÉES', el('strong', null, completedCount() + ' ', el('small', null, '/ ' + MISSIONS.length))),
-      metric('PROGRESSION DU PARCOURS', el('strong', null, state.progressPercent + ' ', el('small', null, '%')), progressTrack(state.progressPercent, 'Progression du parcours')),
-      metric(next === -1 ? 'PROCHAIN DÉFI' : 'MISSION ACTUELLE DÉBLOQUÉE', el('strong', null, next === -1 ? 'QUIZ FINAL' : '0' + (next + 1)))),
-    el('section', { className: 'dashboard-section' },
-      el('div', { className: 'dashboard-section-heading' },
-        el('h2', { className: 'display' }, 'CHAQUE EFFORT COMPTE.'),
-        el('button', { type: 'button', className: 'text-button', dataset: { action: 'start' } }, next === -1 ? 'Mon quiz final' : 'Reprendre le parcours', icon('arrow'))),
-      el('div', { className: 'table-scroll' }, table)),
-    el('div', { className: 'dashboard-results' },
-      resultBlock('LE QUIZ FINAL', quizTitle, quizInfo, state.quiz.lastScore !== null ? state.quiz.lastScore + '/10' : icon('trophy'), 'quiz', state.quiz.lastScore !== null ? 'Voir le résultat' : 'Accéder au quiz'),
-      resultBlock('LE PENDU FOOTBALL', hangTitle, hangInfo, icon('pendu'), 'hangman', 'Jouer au Pendu')),
-    el('section', { className: 'dashboard-section' },
-      el('div', { className: 'dashboard-section-heading' },
-        el('h2', { className: 'display' }, 'TES INSIGNES DE LÉGENDE.'),
-        el('span', null, `${state.badges.length} / ${BADGES.length} débloqués`)),
-      el('div', { className: 'badge-grid' }, BADGES.map(badge => {
-        const earned = state.badges.includes(badge.id);
-        return el('div', { className: 'badge' + (earned ? ' earned' : ''), title: badge.description },
-          el('div', { className: 'badge-symbol' }, icon(earned ? badge.icon : 'lock')),
-          el('strong', null, badge.label),
-          el('p', null, badge.description + (earned ? ' · Obtenu' : '')));
-      }))));
 }
 
 // Liste des données du localStorage, parcourue avec length et key(i) comme dans le cours.
@@ -1021,7 +940,7 @@ function renderSettings() {
       el('div', null, musicGroup, displayGroup, dataGroup)));
 }
 
-const RENDERERS = { home: renderHome, journey: renderJourney, mission: renderMission, quiz: renderQuiz, hangman: renderHangman, dashboard: renderDashboard, settings: renderSettings };
+const RENDERERS = { home: renderHome, journey: renderJourney, mission: renderMission, quiz: renderQuiz, hangman: renderHangman, settings: renderSettings };
 
 function renderCurrent(scrollToTop = false) {
   if (!state.profile && route !== 'home') route = 'home';
@@ -1036,7 +955,7 @@ function renderCurrent(scrollToTop = false) {
     Object.keys(draft).forEach(name => { const field = byId('profile-' + name); if (field) field.value = draft[name]; });
     refreshStadiumMap('profile');
   }
-  const titles = { home: 'Deviens une légende !', journey: 'Le parcours', mission: MISSIONS[activeMission].title, quiz: 'Quiz final', hangman: 'Pendu football', dashboard: 'Tableau de bord', settings: 'Paramètres' };
+  const titles = { home: 'Deviens une légende !', journey: 'Le parcours', mission: MISSIONS[activeMission].title, quiz: 'Quiz final', hangman: 'Pendu football', settings: 'Paramètres' };
   document.title = 'FOOTBALL JOURNEY - ' + titles[route];
   if (route === 'mission') activerDragAndDrop();
   attachMediaHandlers();
@@ -1069,7 +988,7 @@ function requestProfile() {
 }
 
 function navigate(destination, missionId = 0) {
-  if (!['home', 'journey', 'mission', 'quiz', 'hangman', 'dashboard', 'settings'].includes(destination)) return;
+  if (!['home', 'journey', 'mission', 'quiz', 'hangman', 'settings'].includes(destination)) return;
   if (destination !== 'home' && !requestProfile()) return;
   if (destination === 'mission' && !canAccessMission(missionId)) {
     notify('Cette mission est encore verrouillée. Termine d’abord la mission précédente.', 'error');
@@ -1165,11 +1084,11 @@ function submitProfile(form) {
     else renderCurrent(false);
     notify(mode === 'register'
       ? 'Bienvenue ' + state.profile.nickname + ' ! Ton maillot est prêt.' + (saved ? ' À toi d’écrire l’histoire.' : ' Attention : le navigateur ne permet pas de sauvegarder ce profil.')
-      : saved ? 'Profil enregistré. Tes points et ta progression sont conservés.' : 'Profil modifié pour cette visite. La sauvegarde locale est indisponible.', saved ? 'success' : 'error');
+      : saved ? 'Profil enregistré. Ta progression est conservée.' : 'Profil modifié pour cette visite. La sauvegarde locale est indisponible.', saved ? 'success' : 'error');
   };
   if (mode === 'register') save();
   else if (JSON.stringify(checked.profile) === JSON.stringify(state.profile)) notify('Ton profil est déjà à jour.');
-  else confirmAction('UN NOUVEAU MAILLOT ?', 'Enregistrer les modifications de ton profil ? Ton parcours, tes points et tes badges resteront inchangés.', 'ENREGISTRER', save);
+  else confirmAction('UN NOUVEAU MAILLOT ?', 'Enregistrer les modifications de ton profil ? Ton parcours restera inchangé.', 'ENREGISTRER', save);
 }
 
 /* ==========================================================================
@@ -1246,11 +1165,9 @@ function verifierDepot(draggedElement, container) {
   byId('answers-' + target.id).appendChild(draggedElement);
   draggedElement.setAttribute('draggable', 'false');
   draggedElement.classList.add('placed');
-  const before = state.totalPoints;
   state.missions[activeMission].answers[item.id] = target.id;
   persist();
-  const awarded = state.totalPoints - before;
-  missionFeedback = { mission: activeMission, target: target.id, type: 'success', message: 'Bravo ! ' + (awarded > 0 ? '+10 points. ' : '') + item.explanation + (storageAvailable ? '' : ' Attention : ces points ne sont pas sauvegardés par le navigateur.') };
+  missionFeedback = { mission: activeMission, target: target.id, type: 'success', message: 'Bravo ! ' + item.explanation };
   renderCurrent(false);
 }
 
@@ -1264,12 +1181,11 @@ function finishMission(id) {
   renderCurrent(false);
   const last = id === MISSIONS.length - 1;
   openDialog('MISSION ACCOMPLIE !', [
-    el('strong', { className: 'accent' }, '+100 points bonus'), el('br'),
-    `Bravo ${state.profile.nickname} ! Tu as gagné ${state.missions[id].score} points sur cette mission.`, el('br'),
+    `Bravo ${state.profile.nickname} ! Tu as terminé « ${MISSIONS[id].title} ».`, el('br'),
     last ? ['Les trois missions sont terminées. ', el('strong', null, 'Place au quiz final !')]
       : ['La mission suivante est débloquée : ', el('strong', null, MISSIONS[id + 1].title + '.')]
   ], [
-    el('button', { type: 'button', className: 'button secondary', dataset: { route: 'dashboard' } }, 'MON BILAN'),
+    el('button', { type: 'button', className: 'button secondary', dataset: { route: 'journey' } }, 'MON PARCOURS'),
     el('button', { type: 'button', className: 'button', dataset: { action: 'next-mission', id } }, last ? 'LE QUIZ FINAL' : 'MISSION SUIVANTE', icon('arrow'))
   ], 'success');
 }
@@ -1334,7 +1250,6 @@ function guessLetter(letter) {
   const status = getHangmanStatus(hangmanGame);
   if (status.finished) {
     state.hangman.lastResult = { won: status.won, word: hangmanGame.word, errors: status.errors };
-    if (status.won) state.hangman.everWon = true;
     persist();
   }
   renderCurrent(false);
