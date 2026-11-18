@@ -13,11 +13,8 @@
 // Web Storage (cours) : chaque information a sa propre clé dans le localStorage.
 const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'stade', 'volume', 'mode', 'luminosite',
   'latitude', 'longitude', 'precision', 'datePosition',
-  'dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu', 'dateDernierPendu', 'progression'];
-// Score du quiz : sessionStorage (effacé à la fermeture de l'onglet) avec les clés
-// scoreQuiz, bonnesReponsesQuiz, reponsesQuiz, pseudoQuiz et dateQuiz.
-// Ancienne version du projet : tout était rangé dans une seule clé (convertie au premier chargement).
-const OLD_STORAGE_KEY = 'footballJourney.v1';
+  'dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu', 'progression'];
+// Score du quiz : sessionStorage (effacé à la fermeture de l'onglet) avec les clés scoreQuiz et pseudoQuiz.
 const WORDS = ['FOOTBALL', 'STADE', 'BALLON', 'GARDIEN', 'ARBITRE', 'BUT', 'JOUEUR', 'MATCH', 'COUPE', 'PENALTY'];
 const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 const HERO_IMAGE = 'https://images.pexels.com/photos/36737326/pexels-photo-36737326.jpeg?auto=compress&cs=tinysrgb&fit=crop&h=900&w=1800';
@@ -78,50 +75,6 @@ const MISSIONS = [
       { id: 'goalkeeper', label: 'Gardien', icon: 'glove', target: 'keeper', explanation: 'Le gardien peut utiliser ses mains dans sa propre surface de réparation, sauf dans certaines situations prévues par les règles.' },
       { id: 'midfielder', label: 'Milieu de terrain', icon: 'midfield', target: 'midfield', explanation: 'Le milieu fait le lien entre les lignes, récupère le ballon et construit les actions.' }
     ]
-  },
-  {
-    id: 3, title: 'Le premier contrat', age: '17 - 20 ans', type: 'timeline', icon: 'file',
-    image: 'https://images.pexels.com/photos/37313578/pexels-photo-37313578.jpeg?auto=compress&cs=tinysrgb&w=650',
-    intro: 'Le travail paie : un club croit en toi. Découvre les coulisses d’une carrière professionnelle.',
-    objective: 'Reconnaître cinq moments clés de la vie d’un joueur professionnel.',
-    instruction: 'Reconstitue cette première saison. Associe chaque notion à la situation correspondante sur la frise.',
-    targets: [
-      { id: 'sign', title: 'Tu officialises ton engagement avec ton premier club.', description: 'Étape 1 : une nouvelle aventure.' },
-      { id: 'train', title: 'Tu répètes les passes et les schémas tactiques avec le groupe.', description: 'Étape 2 : progresser ensemble.' },
-      { id: 'prepare', title: 'Tu développes ton endurance, ta force et ta récupération.', description: 'Étape 3 : construire ton moteur.' },
-      { id: 'compete', title: 'Tu affrontes d’autres clubs dans un championnat officiel.', description: 'Étape 4 : place aux rencontres.' },
-      { id: 'transfer', title: 'Tu quittes ton club pour rejoindre une autre équipe.', description: 'Étape 5 : un nouveau défi.' }
-    ],
-    items: [
-      { id: 'fitness', label: 'Préparation physique', icon: 'training', target: 'prepare', explanation: 'La préparation physique développe les capacités du joueur et aide à prévenir les blessures.' },
-      { id: 'transfer', label: 'Transfert', icon: 'exchange', target: 'transfer', explanation: 'Un transfert désigne le passage d’un joueur d’un club à un autre.' },
-      { id: 'contract', label: 'Contrat professionnel', icon: 'file', target: 'sign', explanation: 'Le contrat formalise l’engagement, les droits et les obligations du joueur et du club.' },
-      { id: 'competition', label: 'Compétition', icon: 'trophy', target: 'compete', explanation: 'Un championnat est une compétition officielle organisée entre plusieurs clubs.' },
-      { id: 'training', label: 'Entraînement', icon: 'ball', target: 'train', explanation: 'L’entraînement permet de travailler la technique, les automatismes et la tactique collective.' }
-    ]
-  },
-  {
-    id: 4, title: 'La légende du football', age: '21 ans et plus', type: 'legend', icon: 'trophy',
-    image: 'https://images.pexels.com/photos/36737326/pexels-photo-36737326.jpeg?auto=compress&cs=tinysrgb&w=650',
-    intro: 'Les projecteurs sont sur toi. Une légende ne fait pas que jouer : elle prend les bonnes décisions.',
-    objective: 'Mobiliser les règles, les rôles et l’esprit collectif dans six situations de haut niveau.',
-    instruction: 'Lis chaque situation de match, puis associe-lui la responsabilité, la décision ou le trophée qui convient.',
-    targets: [
-      { id: 'feet', title: 'Le gardien sort de sa surface avec le ballon.', description: 'Quelle règle doit-il respecter ?' },
-      { id: 'build', title: 'Le milieu récupère le ballon et lève la tête.', description: 'Quelle est sa responsabilité ?' },
-      { id: 'referee', title: 'Un joueur commet une faute dangereuse.', description: 'Qui fait appliquer les règles ?' },
-      { id: 'worldcup', title: 'Ta sélection gagne la finale du Mondial.', description: 'Quel trophée remporte-t-elle ?' },
-      { id: 'pass', title: 'Un partenaire est démarqué devant le but, toi non.', description: 'Quel choix privilégie le collectif ?' },
-      { id: 'shoot', title: 'L’attaquant est seul face au gardien, en bonne position.', description: 'Comment concrétiser l’occasion ?' }
-    ],
-    items: [
-      { id: 'pass', label: 'Faire une passe', icon: 'exchange', target: 'pass', explanation: 'Servir un partenaire mieux placé augmente les chances de marquer : le collectif passe avant l’exploit individuel.' },
-      { id: 'trophy', label: 'La Coupe du monde', icon: 'trophy', target: 'worldcup', explanation: 'La sélection qui remporte la finale du Mondial gagne le trophée de la Coupe du monde.' },
-      { id: 'feet', label: 'Jouer avec les pieds', icon: 'boot', target: 'feet', explanation: 'Hors de sa surface de réparation, le gardien est soumis aux mêmes restrictions de main que les autres joueurs.' },
-      { id: 'shoot', label: 'Tenter un tir placé', icon: 'goal', target: 'shoot', explanation: 'Seul en bonne position, l’attaquant cherche à marquer en plaçant son tir hors de portée du gardien.' },
-      { id: 'referee', label: 'L’arbitre intervient', icon: 'whistle', target: 'referee', explanation: 'L’arbitre sanctionne les fautes et adapte la sanction disciplinaire à leur gravité.' },
-      { id: 'build', label: 'Construire l’action', icon: 'midfield', target: 'build', explanation: 'Le milieu organise la transition vers l’attaque en recherchant une passe utile.' }
-    ]
   }
 ];
 
@@ -141,11 +94,9 @@ const QUESTIONS = [
 const BADGES = [
   { id: 'first', label: 'Premier pas', description: 'Terminer la mission 1', icon: 'flag', condition: s => s.missions[0].completed },
   { id: 'promising', label: 'Joueur prometteur', description: 'Terminer la mission 2', icon: 'boot', condition: s => s.missions[1].completed },
-  { id: 'talent', label: 'Jeune talent', description: 'Terminer la mission 3', icon: 'star', condition: s => s.missions[2].completed },
-  { id: 'professional', label: 'Professionnel', description: 'Terminer la mission 4', icon: 'shield', condition: s => s.missions[3].completed },
-  { id: 'legend', label: 'Légende du football', description: 'Terminer les 5 missions', icon: 'trophy', condition: s => s.missions.every(m => m.completed) },
-  { id: 'quiz', label: 'Champion du quiz', description: 'Obtenir au moins 8/10', icon: 'check-circle', condition: s => s.quiz.claimed && s.quiz.bestScore >= 8 },
-  { id: 'hangman', label: 'Maître du Pendu', description: 'Gagner une partie', icon: 'pendu', condition: s => s.hangman.bonusAwarded }
+  { id: 'legend', label: 'Jeune talent', description: 'Terminer les 3 missions', icon: 'star', condition: s => s.missions.every(m => m.completed) },
+  { id: 'quiz', label: 'Champion du quiz', description: 'Obtenir au moins 8/10', icon: 'check-circle', condition: s => s.quiz.lastScore !== null && s.quiz.lastScore >= 8 },
+  { id: 'hangman', label: 'Maître du Pendu', description: 'Gagner une partie', icon: 'pendu', condition: s => s.hangman.everWon }
 ];
 
 // Carte interactive du formulaire (Europe et Afrique du Nord) : la position de chaque stade est dans style.css.
@@ -165,12 +116,12 @@ const STADIUMS = [
    ========================================================================== */
 function freshState() {
   return {
-    version: 1, profile: null,
+    profile: null,
     settings: { volume: .35, theme: 'dark', brightness: 100, location: null },
     missions: MISSIONS.map(() => ({ answers: {}, completed: false, score: 0 })),
-    quiz: { claimed: false, firstScore: null, lastScore: null, bestScore: null, lastAnswers: [], attempts: 0, completedAt: null },
-    hangman: { game: null, lastResult: null, bonusAwarded: false },
-    totalPoints: 0, rewards: {}, badges: [], unlockedMissions: [0], progressPercent: 0
+    quiz: { lastScore: null },                      // dernier score du quiz (sur 10)
+    hangman: { lastResult: null, everWon: false },   // dernier résultat du pendu
+    totalPoints: 0, badges: [], progressPercent: 0
   };
 }
 
@@ -178,11 +129,10 @@ const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const isScore = value => Number.isInteger(value) && value >= 0 && value <= 10;
 const completedCount = (s = state) => s.missions.filter(m => m.completed).length;
-const canAccessMission = (id, s = state) => Number.isInteger(id) && id >= 0 && id < 5 && (id === 0 || s.missions.slice(0, id).every(m => m.completed));
-// Le quiz final est accessible à tout moment depuis le menu.
-const canAccessQuiz = () => true;
+// Une mission est ouverte quand toutes les précédentes sont terminées.
+const canAccessMission = (id, s = state) => Number.isInteger(id) && id >= 0 && id < MISSIONS.length && s.missions.slice(0, id).every(m => m.completed);
 const correctCount = (id, s = state) => MISSIONS[id].items.filter(item => s.missions[id].answers[item.id] === item.target).length;
-const levelName = (s = state) => ['Débutant', 'Apprenti', 'Joueur prometteur', 'Jeune talent', 'Professionnel', 'Légende'][completedCount(s)];
+const levelName = (s = state) => ['Débutant', 'Apprenti', 'Joueur prometteur', 'Jeune talent'][completedCount(s)];
 const formatPoints = n => Number(n).toLocaleString('fr-FR');
 const nextMission = () => state.missions.findIndex(m => !m.completed);
 
@@ -204,53 +154,36 @@ function validateProfile(input) {
   return { profile, errors, valid: Object.keys(errors).length === 0 };
 }
 
+// Calcule les scores : 10 points par bonne association, 100 points par mission terminée,
+// 10 points par bonne réponse au dernier quiz.
 function deriveState(s) {
-  const rewards = {};
   let previousComplete = true;
   s.missions.forEach((mission, index) => {
-    const cleanAnswers = {};
-    if (previousComplete) {
-      MISSIONS[index].items.forEach(item => {
-        if (mission.answers[item.id] === item.target) {
-          cleanAnswers[item.id] = item.target;
-          rewards[`mission:${index}:answer:${item.id}`] = 10;
-        }
-      });
-    }
-    mission.answers = cleanAnswers;
-    mission.completed = previousComplete && mission.completed === true && Object.keys(cleanAnswers).length === MISSIONS[index].items.length;
-    if (mission.completed) rewards[`mission:${index}:complete`] = 100;
-    mission.score = Object.keys(cleanAnswers).length * 10 + (mission.completed ? 100 : 0);
+    const answers = {};
+    MISSIONS[index].items.forEach(item => { if (previousComplete && mission.answers[item.id] === item.target) answers[item.id] = item.target; });
+    mission.answers = answers;
+    mission.completed = previousComplete && mission.completed === true && Object.keys(answers).length === MISSIONS[index].items.length;
+    mission.score = Object.keys(answers).length * 10 + (mission.completed ? 100 : 0);
     previousComplete = mission.completed;
   });
-  if (!canAccessQuiz(s)) s.quiz = freshState().quiz;
-  if (s.quiz.claimed && isScore(s.quiz.firstScore)) rewards['quiz:first-attempt'] = s.quiz.firstScore * 10;
-  if (s.hangman.bonusAwarded) rewards['hangman:first-victory'] = 50;
-  s.rewards = rewards;
-  s.totalPoints = Object.values(rewards).reduce((sum, points) => sum + points, 0);
-  s.unlockedMissions = MISSIONS.filter(m => canAccessMission(m.id, s)).map(m => m.id);
-  s.progressPercent = completedCount(s) * 20;
+  s.totalPoints = s.missions.reduce((sum, mission) => sum + mission.score, 0) + (s.quiz.lastScore || 0) * 10;
+  s.progressPercent = Math.round(completedCount(s) / MISSIONS.length * 100);
   s.badges = BADGES.filter(badge => badge.condition(s)).map(badge => badge.id);
   return s;
 }
 
+// Remet en forme les données lues dans le stockage (valeurs manquantes ou fausses ignorées).
 function normalizeState(raw) {
   const s = freshState();
-  if (!isObject(raw)) return s;
   if (isObject(raw.profile)) {
     const checked = validateProfile(raw.profile);
     if (checked.valid) s.profile = checked.profile;
   }
-  if (isObject(raw.settings)) {
-    const r = raw.settings;
-    if (typeof r.volume === 'number' && Number.isFinite(r.volume)) s.settings.volume = clamp(r.volume, 0, 1);
-    if (typeof r.brightness === 'number' && Number.isFinite(r.brightness)) s.settings.brightness = clamp(Math.round(r.brightness), 60, 120);
-    s.settings.theme = r.theme === 'light' ? 'light' : 'dark';
-    const loc = r.location;
-    if (isObject(loc) && typeof loc.latitude === 'number' && typeof loc.longitude === 'number' && Number.isFinite(loc.latitude) && Number.isFinite(loc.longitude) && Math.abs(loc.latitude) <= 90 && Math.abs(loc.longitude) <= 180) {
-      s.settings.location = { latitude: loc.latitude, longitude: loc.longitude, accuracy: Number.isFinite(loc.accuracy) ? Math.max(0, loc.accuracy) : null, timestamp: Number.isFinite(loc.timestamp) ? loc.timestamp : null };
-    }
-  }
+  const r = isObject(raw.settings) ? raw.settings : {};
+  if (Number.isFinite(r.volume)) s.settings.volume = clamp(r.volume, 0, 1);
+  if (Number.isFinite(r.brightness)) s.settings.brightness = clamp(Math.round(r.brightness), 60, 120);
+  s.settings.theme = r.theme === 'light' ? 'light' : 'dark';
+  if (isObject(r.location) && Number.isFinite(r.location.latitude) && Number.isFinite(r.location.longitude)) s.settings.location = r.location;
   if (Array.isArray(raw.missions)) {
     MISSIONS.forEach((_, index) => {
       const saved = raw.missions[index];
@@ -260,40 +193,11 @@ function normalizeState(raw) {
       }
     });
   }
-  deriveState(s);
-  if (canAccessQuiz(s) && isObject(raw.quiz) && raw.quiz.claimed === true && isScore(raw.quiz.firstScore)) {
-    const q = raw.quiz;
-    s.quiz.claimed = true;
-    s.quiz.firstScore = q.firstScore;
-    s.quiz.lastScore = isScore(q.lastScore) ? q.lastScore : q.firstScore;
-    s.quiz.bestScore = Math.max(s.quiz.firstScore, s.quiz.lastScore, isScore(q.bestScore) ? q.bestScore : 0);
-    s.quiz.attempts = Number.isInteger(q.attempts) ? clamp(q.attempts, 1, 100000) : 1;
-    s.quiz.completedAt = typeof q.completedAt === 'string' && !Number.isNaN(Date.parse(q.completedAt)) ? q.completedAt : null;
-    if (Array.isArray(q.lastAnswers) && q.lastAnswers.length === 10 && q.lastAnswers.every(a => Number.isInteger(a) && a >= 0 && a < 4)) {
-      const verifiedScore = q.lastAnswers.filter((a, i) => a === QUESTIONS[i].correct).length;
-      if (verifiedScore === s.quiz.lastScore) s.quiz.lastAnswers = q.lastAnswers.slice();
-    }
-  }
+  if (isObject(raw.quiz) && isScore(raw.quiz.lastScore)) s.quiz.lastScore = raw.quiz.lastScore;
   if (isObject(raw.hangman)) {
-    s.hangman.bonusAwarded = raw.hangman.bonusAwarded === true;
-    const game = raw.hangman.game;
-    if (isObject(game) && WORDS.includes(game.word) && Array.isArray(game.guesses)) {
-      const guesses = [];
-      for (const letter of [...new Set(game.guesses.filter(l => typeof l === 'string' && /^[A-Z]$/.test(l)))]) {
-        if (getHangmanStatus({ word: game.word, guesses }).finished) break;
-        guesses.push(letter);
-      }
-      s.hangman.game = {
-        id: typeof game.id === 'string' ? game.id.slice(0, 80) : 'recovered-game', word: game.word,
-        guesses, settled: game.settled === true
-      };
-      const status = getHangmanStatus(s.hangman.game);
-      if (!status.finished) s.hangman.game.settled = false;
-    }
+    s.hangman.everWon = raw.hangman.everWon === true;
     const last = raw.hangman.lastResult;
-    if (isObject(last) && WORDS.includes(last.word) && typeof last.won === 'boolean' && Number.isInteger(last.errors) && last.errors >= 0 && (last.won ? last.errors < 6 : last.errors === 6)) {
-      s.hangman.lastResult = { won: last.won, word: last.word, errors: last.errors, date: typeof last.date === 'string' && !Number.isNaN(Date.parse(last.date)) ? last.date : null };
-    }
+    if (isObject(last) && typeof last.won === 'boolean' && typeof last.word === 'string' && Number.isInteger(last.errors)) s.hangman.lastResult = last;
   }
   return deriveState(s);
 }
@@ -312,15 +216,6 @@ function readState() {
     storageAvailable = false;
     loadWarning = 'Désolé, ton navigateur ne supporte pas le web storage : ta progression ne sera pas conservée.';
     return freshState();
-  }
-  const old = localStorage.getItem(OLD_STORAGE_KEY);
-  if (old !== null) {
-    localStorage.removeItem(OLD_STORAGE_KEY);
-    try {
-      const converted = normalizeState(JSON.parse(old));
-      saveState(converted);
-      return converted;
-    } catch (error) { /* ancienne sauvegarde illisible : on lit les nouvelles clés */ }
   }
   const raw = {};
   if (localStorage.getItem('pseudo') !== null) {
@@ -356,7 +251,7 @@ function readState() {
     raw.hangman = isObject(raw.hangman) ? raw.hangman : {};
     raw.hangman.lastResult = {
       won: localStorage.getItem('dernierResultatPendu') === 'gagné', word: localStorage.getItem('dernierMotPendu'),
-      errors: Number(localStorage.getItem('dernierScorePendu')), date: localStorage.getItem('dateDernierPendu')
+      errors: Number(localStorage.getItem('dernierScorePendu'))
     };
   }
   return normalizeState(raw);
@@ -488,12 +383,11 @@ function saveState(s) {
     localStorage.setItem('dernierResultatPendu', last.won ? 'gagné' : 'perdu');
     localStorage.setItem('dernierScorePendu', last.errors);
     localStorage.setItem('dernierMotPendu', last.word);
-    if (last.date) localStorage.setItem('dateDernierPendu', last.date); else localStorage.removeItem('dateDernierPendu');
   } else {
-    ['dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu', 'dateDernierPendu'].forEach(key => localStorage.removeItem(key));
+    ['dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu'].forEach(key => localStorage.removeItem(key));
   }
-  // Missions, quiz et partie de pendu en cours : une seule chaîne de caractères (JSON).
-  localStorage.setItem('progression', JSON.stringify({ missions: s.missions, quiz: s.quiz, hangman: { game: s.hangman.game, bonusAwarded: s.hangman.bonusAwarded } }));
+  // Missions et dernier score du quiz : une seule chaîne de caractères (JSON).
+  localStorage.setItem('progression', JSON.stringify({ missions: s.missions, quiz: s.quiz, hangman: { everWon: s.hangman.everWon } }));
 }
 
 function persist() {
@@ -560,8 +454,8 @@ const PROFILE_FIELDS = [
   ['nickname', 'Pseudo', 'text', 'Ex. Alex10', 'nickname'],
   ['age', 'Âge', 'number', '5 à 100 ans', 'off']
 ];
-const SOURCE_LABELS = { discovery: 'LES ÉQUIPEMENTS', sorting: 'LES SIX IMAGES À CLASSER', pitch: 'TON EFFECTIF', timeline: 'LES MOMENTS DE TA CARRIÈRE', legend: 'TES DÉCISIONS' };
-const TARGET_LABELS = { discovery: 'CHAQUE ÉQUIPEMENT A SON RÔLE', sorting: 'LES DEUX VESTIAIRES', pitch: 'LE TABLEAU TACTIQUE', timeline: 'TA PREMIÈRE SAISON', legend: 'LES SITUATIONS DE MATCH' };
+const SOURCE_LABELS = { discovery: 'LES ÉQUIPEMENTS', sorting: 'LES SIX IMAGES À CLASSER', pitch: 'TON EFFECTIF' };
+const TARGET_LABELS = { discovery: 'CHAQUE ÉQUIPEMENT A SON RÔLE', sorting: 'LES DEUX VESTIAIRES', pitch: 'LE TABLEAU TACTIQUE' };
 const HANGMAN_PARTS = [
   ['circle', { cx: 151, cy: 79, r: 18 }], ['path', { d: 'M151 97v67' }],
   ['path', { d: 'm151 116-34 24' }], ['path', { d: 'm151 116 34 24' }],
@@ -574,12 +468,11 @@ const eyebrow = text => el('div', { className: 'eyebrow' }, text);
 
 function renderHeader() {
   const active = route === 'mission' ? 'journey' : route;
-  const quizLocked = !canAccessQuiz();
   const nav = el('nav', { className: 'primary-nav', id: 'primary-nav', 'aria-label': 'Navigation principale' },
     NAVIGATION.map(([id, label, symbol]) => el('button', {
       type: 'button', className: 'nav-button' + (active === id ? ' active' : ''), dataset: { route: id },
-      'aria-current': active === id ? 'page' : null, 'aria-disabled': id === 'quiz' && quizLocked ? 'true' : null
-    }, icon(symbol), label, id === 'quiz' && quizLocked ? icon('lock', 'nav-lock') : null)));
+      'aria-current': active === id ? 'page' : null
+    }, icon(symbol), label)));
 
   setContent(byId('site-header'), el('div', { className: 'header-inner' },
     el('button', { className: 'brand', type: 'button', dataset: { route: 'home' }, 'aria-label': 'Football Journey, accueil' },
@@ -756,7 +649,7 @@ function renderHome() {
 
   const path = el('section', { className: 'container home-path', 'aria-labelledby': 'home-path-title' },
     el('div', { className: 'section-heading' },
-      el('div', null, eyebrow('TON PARCOURS VERS LA GLOIRE'), el('h2', { className: 'display', id: 'home-path-title' }, 'CINQ ÉTAPES. UNE LÉGENDE.')),
+      el('div', null, eyebrow('TON PARCOURS VERS LA GLOIRE'), el('h2', { className: 'display', id: 'home-path-title' }, 'TROIS ÉTAPES. UN RÊVE.')),
       el('button', { type: 'button', className: 'text-button', dataset: { route: 'journey' } }, 'Tout le parcours ', icon('arrow'))),
     el('div', { className: 'mission-grid' }, MISSIONS.map(renderMissionCard)));
 
@@ -795,7 +688,7 @@ function renderHomePlayer() {
         el('p', { className: 'player-home-identity' }, `${p.firstName} ${p.lastName} · ${p.age} ans · ${levelName()}` + (stadiumById(p.stadium) ? ' · Stade de cœur : ' + stadiumById(p.stadium).name : ''))),
       el('div', { className: 'home-metrics' },
         el('div', { className: 'home-metric' }, el('strong', { className: 'accent' }, formatPoints(state.totalPoints)), el('span', null, 'Points au compteur')),
-        el('div', { className: 'home-metric' }, el('strong', null, completedCount(), el('small', { className: 'unit muted' }, ' / 5')), el('span', null, 'Missions terminées')),
+        el('div', { className: 'home-metric' }, el('strong', null, completedCount(), el('small', { className: 'unit muted' }, ' / ' + MISSIONS.length)), el('span', null, 'Missions terminées')),
         el('div', { className: 'home-metric' }, el('strong', null, state.progressPercent, el('small', { className: 'unit' }, ' %')), el('span', null, 'Progression du parcours')),
         el('button', { className: 'button secondary', type: 'button', dataset: { route: 'dashboard' } }, 'MON TABLEAU DE BORD ', icon('arrow')))),
     el('div', { className: 'container player-progress' }, progressTrack(state.progressPercent, 'Progression globale')));
@@ -830,11 +723,11 @@ function renderJourney() {
         eyebrow('FOOTBALL JOURNEY'),
         el('h1', { className: 'display' }, 'LA ROUTE VERS', el('br'), el('span', { className: 'accent' }, 'TA LÉGENDE.')),
         el('p', { className: 'muted journey-tagline' }, 'Chaque étape se mérite. Commence petit, rêve grand, joue collectif.')),
-      progressBlock(state.progressPercent, `${count} mission${plural} terminée${plural} sur 5`)),
+      progressBlock(state.progressPercent, `${count} mission${plural} terminée${plural} sur ${MISSIONS.length}`)),
     el('div', { className: 'journey-list' }, MISSIONS.map(renderJourneyRow)),
-    completedCount() === 5 ? el('div', { className: 'mission-bottom quiz-cta' },
-      el('p', null, 'Les cinq missions sont terminées. ', el('strong', null, 'Le dernier défi t’attend.')),
-      el('button', { className: 'button', type: 'button', dataset: { route: 'quiz' } }, state.quiz.claimed ? 'REVOIR MON QUIZ' : 'ACCÉDER AU QUIZ FINAL', icon('trophy'))) : null);
+    completedCount() === MISSIONS.length ? el('div', { className: 'mission-bottom quiz-cta' },
+      el('p', null, 'Les trois missions sont terminées. ', el('strong', null, 'Le dernier défi t’attend.')),
+      el('button', { className: 'button', type: 'button', dataset: { route: 'quiz' } }, state.quiz.lastScore !== null ? 'REVOIR MON QUIZ' : 'ACCÉDER AU QUIZ FINAL', icon('trophy'))) : null);
 }
 
 // Un élément déplaçable : attribut draggable="true" (étape 1 du cours) et un id unique.
@@ -881,7 +774,7 @@ function renderMission() {
   return el('div', { className: 'container page' },
     el('button', { type: 'button', className: 'text-button back-link', dataset: { route: 'journey' } }, icon('arrow'), 'Retour au parcours'),
     el('div', { className: 'mission-heading' },
-      el('div', null, eyebrow(`MISSION 0${m.id + 1} / 05 · ${m.age}`), el('h1', { className: 'display' }, m.title), el('p', null, m.intro)),
+      el('div', null, eyebrow(`MISSION 0${m.id + 1} / 0${MISSIONS.length} · ${m.age}`), el('h1', { className: 'display' }, m.title), el('p', null, m.intro)),
       el('div', { className: 'mission-points' },
         el('strong', null, saved.score, el('small', null, ' PTS')),
         el('span', null, `sur ${m.items.length * 10 + 100} possibles`))),
@@ -902,13 +795,13 @@ function renderMission() {
       el('div', { className: 'mission-bottom' },
         el('p', null, saved.completed ? 'Bonus de mission déjà obtenu. Revoir ne rapporte pas de points supplémentaires.' : [el('strong', null, '+100 points bonus'), ' en terminant cette mission.']),
         saved.completed
-          ? el('button', { type: 'button', className: 'button', dataset: { action: 'next-mission', id: m.id } }, m.id === 4 ? 'LE QUIZ FINAL M’ATTEND' : 'MISSION SUIVANTE', icon('arrow'))
+          ? el('button', { type: 'button', className: 'button', dataset: { action: 'next-mission', id: m.id } }, m.id === MISSIONS.length - 1 ? 'LE QUIZ FINAL M’ATTEND' : 'MISSION SUIVANTE', icon('arrow'))
           : el('button', { type: 'button', className: 'button', id: 'finish-mission', dataset: { action: 'finish-mission', id: m.id }, disabled: !allCorrect }, 'TERMINER LA MISSION ', icon('check')))));
 }
 
 function renderQuiz() {
-  if (!quizRun && state.quiz.claimed) return renderQuizResult();
-  if (!quizRun) quizRun = { index: 0, answers: Array(10).fill(null), finished: false };
+  if (!quizRun && state.quiz.lastScore !== null) return renderQuizResult();
+  if (!quizRun) quizRun = { index: 0, answers: Array(10).fill(null) };
   const q = QUESTIONS[quizRun.index];
   const selected = quizRun.answers[quizRun.index];
   const step = quizRun.index + 1;
@@ -916,7 +809,7 @@ function renderQuiz() {
     el('div', { className: 'page-intro' },
       eyebrow('LE DERNIER DÉFI'),
       el('h1', { className: 'display' }, 'LE QUIZ DES ', el('span', { className: 'accent' }, 'LÉGENDES.')),
-      el('p', null, 'Dix questions. Tout ce que tu as appris. Montre que tu as l’étoffe d’un grand joueur.')),
+      el('p', null, 'Dix questions sur le football. 10 points par bonne réponse.')),
     el('div', { className: 'quiz-shell' },
       el('div', { className: 'quiz-topline' }, el('span', null, `QUESTION ${step} SUR 10`), el('span', null, step * 10 + ' %')),
       progressTrack(step * 10, 'Progression du quiz', 10, step),
@@ -929,57 +822,35 @@ function renderQuiz() {
             dataset: { quizOption: i }, 'aria-pressed': String(selected === i)
           }, el('span', { className: 'option-letter' }, 'ABCD'[i]), el('span', null, answer))))),
       el('div', { className: 'quiz-bottom' },
-        el('p', null, state.quiz.claimed
-          ? 'Nouvel entraînement : ton meilleur score et tes badges peuvent progresser, mais le bonus ne sera pas versé une seconde fois.'
-          : '10 points par bonne réponse. La récompense est attribuée une seule fois, à la fin de ta première tentative.'),
+        el('p', null, 'Choisis une réponse, puis passe à la question suivante.'),
         el('button', { type: 'button', className: 'button', dataset: { action: 'quiz-next' }, disabled: selected === null }, quizRun.index === 9 ? 'DÉCOUVRIR MON SCORE' : 'QUESTION SUIVANTE', icon('arrow')))));
 }
 
 function renderQuizResult() {
   const score = state.quiz.lastScore;
   const percentage = score * 10;
-  const great = score >= 8;
-  const nickname = state.profile.nickname;
   const ring = svgEl('svg', { viewBox: '0 0 120 120', 'aria-hidden': 'true' },
     svgEl('circle', { className: 'ring-track', cx: 60, cy: 60, r: 54 }),
     svgEl('circle', { className: 'ring-value', cx: 60, cy: 60, r: 54, 'stroke-dasharray': 339.3, 'stroke-dashoffset': 339.3 * (1 - score / 10) }));
-  // Message final demandé par le sujet : « Bravo [pseudo], tu as réussi [X]% de ta mission ! »
-  const message = [el('strong', null, `Bravo ${nickname}, tu as réussi ${percentage}% de ta mission !`), el('br'),
-    great ? 'Tu es sur le chemin de devenir une légende.' : `${score} bonnes réponses sur 10 : chaque entraînement te rapproche de ton objectif.`];
-
   return el('div', { className: 'container page' },
     el('section', { className: 'result-hero' },
       eyebrow('LE QUIZ FINAL EST TERMINÉ'),
-      el('h1', { className: 'display' }, great
+      el('h1', { className: 'display' }, score >= 8
         ? ['TU AS L’ÉTOFFE D’UNE ', el('span', { className: 'accent' }, 'LÉGENDE.')]
         : ['LE TALENT ', el('span', { className: 'accent' }, 'SE TRAVAILLE.')]),
       el('div', { className: 'result-ring', 'aria-label': `${score} bonnes réponses sur 10, soit ${percentage} pour cent` },
         ring, el('span', { className: 'ring-text' }, score, el('small', null, ' / 10'))),
-      el('p', { className: 'result-message' }, message),
-      el('p', { className: 'result-note' }, `Meilleur score : ${state.quiz.bestScore}/10 · ${state.quiz.attempts} tentative${state.quiz.attempts > 1 ? 's' : ''} · Récompense unique : ${state.quiz.firstScore * 10} points`),
+      // Message final demandé par le sujet : « Bravo [pseudo], tu as réussi [X]% de ta mission ! »
+      el('p', { className: 'result-message' }, el('strong', null, `Bravo ${state.profile.nickname}, tu as réussi ${percentage}% de ta mission !`)),
       el('p', { className: 'result-total' }, 'Ton score global : ', el('strong', null, formatPoints(state.totalPoints) + ' points')),
       el('div', { className: 'result-actions' },
         el('button', { type: 'button', className: 'button', dataset: { route: 'dashboard' } }, 'MON TABLEAU DE BORD', icon('arrow')),
-        el('button', { type: 'button', className: 'button secondary', dataset: { action: 'quiz-retry' } }, icon('replay'), 'REPASSER LE QUIZ'))),
-    el('details', { className: 'quiz-correction' },
-      el('summary', null, 'VOIR LA CORRECTION ET LES BONNES RÉPONSES'),
-      QUESTIONS.map((q, i) => {
-        const choice = state.quiz.lastAnswers[i];
-        const known = Number.isInteger(choice);
-        const right = known && choice === q.correct;
-        return el('div', { className: 'correction-item' + (right ? '' : ' wrong') },
-          icon(right ? 'check-circle' : 'info'),
-          el('div', null,
-            el('h3', null, `${i + 1}. ${q.question}`),
-            known ? el('p', null, 'Ta réponse : ' + q.options[choice]) : null,
-            el('p', { className: 'correct-answer' }, 'Bonne réponse : ' + q.options[q.correct]),
-            el('p', null, q.explanation)));
-      })));
+        el('button', { type: 'button', className: 'button secondary', dataset: { action: 'quiz-retry' } }, icon('replay'), 'REJOUER'))));
 }
 
 function renderHangman() {
-  ensureHangmanGame();
-  const game = state.hangman.game;
+  if (!hangmanGame) newHangmanGame();
+  const game = hangmanGame;
   const status = getHangmanStatus(game);
   const plural = status.errors > 1 ? 's' : '';
   const letters = [...game.word];
@@ -988,7 +859,7 @@ function renderHangman() {
     HANGMAN_PARTS.slice(0, status.errors).map(([tag, attrs]) => svgEl(tag, Object.assign({ className: 'person mistake' }, attrs))));
 
   let message;
-  if (status.won) message = [el('strong', null, `Bravo ${state.profile.nickname} !`), `Tu as trouvé ${game.word}. ` + (state.rewards['hangman:first-victory'] ? 'Ton bonus unique de 50 points est enregistré.' : '')];
+  if (status.won) message = [el('strong', null, `Bravo ${state.profile.nickname} !`), `Tu as trouvé ${game.word}.`];
   else if (status.lost) message = [el('strong', null, `Perdu ! Le mot était : ${game.word}`), 'Clique sur Rejouer pour prendre ta revanche.'];
   else message = `Un indice : ${game.word.length} lettres, une seule passion. Les lettres déjà proposées sont désactivées.`;
 
@@ -996,7 +867,7 @@ function renderHangman() {
     el('div', { className: 'page-intro' },
       eyebrow('LA PAUSE AU VESTIAIRE'),
       el('h1', { className: 'display' }, 'UN MOT. SIX CHANCES.', el('br'), el('span', { className: 'accent' }, 'À TOI DE JOUER.')),
-      el('p', null, 'Retrouve un mot de l’univers du football. Clique sur les lettres ou utilise ton clavier.')),
+      el('p', null, 'Retrouve un mot de l’univers du football en cliquant sur les lettres.')),
     el('section', { className: 'hangman-layout', 'aria-label': 'Jeu du Pendu football' },
       el('div', { className: 'hangman-drawing' }, drawing),
       el('div', null,
@@ -1013,7 +884,7 @@ function renderHangman() {
         el('div', { className: 'hangman-message' + (status.won ? ' won' : status.lost ? ' lost' : ''), role: 'status', 'aria-live': 'polite' }, message),
         el('div', { className: 'game-bottom' },
           el('button', { type: 'button', id: 'hangman-replay', className: 'button' + (status.finished ? '' : ' secondary'), dataset: { action: 'hangman-replay' } }, icon('replay'), 'REJOUER'),
-          el('p', null, state.hangman.bonusAwarded ? 'Bonus de première victoire déjà obtenu. Les parties suivantes sont sans bonus.' : '+50 points pour ta première victoire. Un seul bonus, autant de parties que tu veux.')))));
+          el('p', null, 'Ton dernier résultat est enregistré dans le localStorage.')))));
 }
 
 function renderDashboard() {
@@ -1037,11 +908,10 @@ function renderDashboard() {
     el('thead', null, el('tr', null, ['MISSION', 'ASSOCIATIONS', 'BONUS', 'SCORE', 'STATUT'].map(title => el('th', null, title)), el('th', null, el('span', { 'aria-label': 'Action' })))),
     el('tbody', null, rows));
 
-  const quizTitle = state.quiz.claimed ? `Dernière tentative : ${state.quiz.lastScore}/10 (${state.quiz.lastScore * 10} %)` : canAccessQuiz() ? 'Le dernier défi est disponible.' : 'Termine les cinq missions pour jouer.';
-  const quizInfo = state.quiz.claimed ? `Meilleur score : ${state.quiz.bestScore}/10 · Bonus unique : ${state.quiz.firstScore * 10} pts` : '10 questions · Jusqu’à 100 points';
+  const quizTitle = state.quiz.lastScore !== null ? `Dernier score : ${state.quiz.lastScore}/10 (${state.quiz.lastScore * 10} %)` : 'Le quiz t’attend.';
+  const quizInfo = '10 questions · 10 points par bonne réponse';
   const hangTitle = last ? (last.won ? 'Victoire' : 'Défaite') + ' · ' + last.word : 'Ton premier mot t’attend.';
-  const hangInfo = (last ? last.errors + ' erreur' + (last.errors > 1 ? 's' : '') + ' sur 6' + (last.date ? ' · ' + new Date(last.date).toLocaleDateString('fr-FR') : '') : 'Un mot mystère, six chances.')
-    + ' · ' + (state.hangman.bonusAwarded ? 'Bonus unique obtenu' : '+50 pts à ta première victoire');
+  const hangInfo = last ? last.errors + ' erreur' + (last.errors > 1 ? 's' : '') + ' sur 6' : 'Un mot mystère, six chances.';
   const resultBlock = (title, line, info, side, routeName, linkLabel) => el('section', { className: 'dashboard-result' },
     el('h2', { className: 'display' }, title),
     el('div', { className: 'dashboard-result-line' }, el('div', null, el('strong', null, line), el('p', null, info)), el('span', null, side)),
@@ -1055,7 +925,7 @@ function renderDashboard() {
       el('div', { className: 'dashboard-level' }, eyebrow('TON NIVEAU ACTUEL'), el('strong', null, levelName()))),
     el('div', { className: 'dashboard-metrics' },
       metric('POINTS AU COMPTEUR', el('strong', { className: 'accent' }, formatPoints(state.totalPoints) + ' ', el('small', null, 'PTS'))),
-      metric('MISSIONS TERMINÉES', el('strong', null, completedCount() + ' ', el('small', null, '/ 5'))),
+      metric('MISSIONS TERMINÉES', el('strong', null, completedCount() + ' ', el('small', null, '/ ' + MISSIONS.length))),
       metric('PROGRESSION DU PARCOURS', el('strong', null, state.progressPercent + ' ', el('small', null, '%')), progressTrack(state.progressPercent, 'Progression du parcours')),
       metric(next === -1 ? 'PROCHAIN DÉFI' : 'MISSION ACTUELLE DÉBLOQUÉE', el('strong', null, next === -1 ? 'QUIZ FINAL' : '0' + (next + 1)))),
     el('section', { className: 'dashboard-section' },
@@ -1064,8 +934,8 @@ function renderDashboard() {
         el('button', { type: 'button', className: 'text-button', dataset: { action: 'start' } }, next === -1 ? 'Mon quiz final' : 'Reprendre le parcours', icon('arrow'))),
       el('div', { className: 'table-scroll' }, table)),
     el('div', { className: 'dashboard-results' },
-      resultBlock('LE QUIZ FINAL', quizTitle, quizInfo, state.quiz.claimed ? state.quiz.lastScore + '/10' : icon(canAccessQuiz() ? 'trophy' : 'lock'), 'quiz', state.quiz.claimed ? 'Voir le résultat' : 'Accéder au quiz'),
-      resultBlock('LE PENDU FOOTBALL', hangTitle, hangInfo, state.hangman.bonusAwarded ? '+50' : icon('pendu'), 'hangman', 'Jouer au Pendu')),
+      resultBlock('LE QUIZ FINAL', quizTitle, quizInfo, state.quiz.lastScore !== null ? state.quiz.lastScore + '/10' : icon('trophy'), 'quiz', state.quiz.lastScore !== null ? 'Voir le résultat' : 'Accéder au quiz'),
+      resultBlock('LE PENDU FOOTBALL', hangTitle, hangInfo, icon('pendu'), 'hangman', 'Jouer au Pendu')),
     el('section', { className: 'dashboard-section' },
       el('div', { className: 'dashboard-section-heading' },
         el('h2', { className: 'display' }, 'TES INSIGNES DE LÉGENDE.'),
@@ -1086,7 +956,7 @@ function storedDataItems() {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (!LOCAL_KEYS.includes(key)) continue;
-      const value = key === 'progression' ? 'missions, quiz et partie de pendu en cours' : localStorage.getItem(key);
+      const value = key === 'progression' ? 'missions, dernier score du quiz' : localStorage.getItem(key);
       items.push({ key, item: el('li', null, el('strong', null, key + ' : '), value) });
     }
   }
@@ -1156,7 +1026,6 @@ const RENDERERS = { home: renderHome, journey: renderJourney, mission: renderMis
 function renderCurrent(scrollToTop = false) {
   if (!state.profile && route !== 'home') route = 'home';
   if (route === 'mission' && !canAccessMission(activeMission)) route = 'journey';
-  if (route === 'quiz' && !canAccessQuiz()) route = 'journey';
   const oldY = window.scrollY;
   const oldFocus = document.activeElement ? document.activeElement.id : '';
   const form = route === 'settings' && !scrollToTop ? byId('profile-form') : null;
@@ -1199,33 +1068,11 @@ function requestProfile() {
   return false;
 }
 
-const ROUTE_HASHES = { home: 'accueil', journey: 'parcours', quiz: 'quiz-final', hangman: 'pendu', dashboard: 'tableau-de-bord', settings: 'parametres' };
-
-function parseRouteHash() {
-  const hash = window.location.hash.slice(1).toLowerCase();
-  const mission = hash.match(/^mission-([1-5])$/);
-  if (mission) return { route: 'mission', missionId: Number(mission[1]) - 1 };
-  const entry = Object.entries(ROUTE_HASHES).find(([, value]) => value === hash);
-  return entry ? { route: entry[0], missionId: 0 } : null;
-}
-
-function syncHistory(mode = 'replace') {
-  const hash = '#' + (route === 'mission' ? 'mission-' + (activeMission + 1) : ROUTE_HASHES[route]);
-  try {
-    if (mode === 'push' && window.location.hash !== hash) history.pushState(null, '', hash);
-    else if (mode === 'replace') history.replaceState(null, '', hash);
-  } catch (error) { /* Navigation still works when history access is restricted. */ }
-}
-
-function navigate(destination, missionId = 0, recordHistory = true) {
+function navigate(destination, missionId = 0) {
   if (!['home', 'journey', 'mission', 'quiz', 'hangman', 'dashboard', 'settings'].includes(destination)) return;
   if (destination !== 'home' && !requestProfile()) return;
   if (destination === 'mission' && !canAccessMission(missionId)) {
     notify('Cette mission est encore verrouillée. Termine d’abord la mission précédente.', 'error');
-    return;
-  }
-  if (destination === 'quiz' && !canAccessQuiz()) {
-    notify('Le quiz final se débloque après les cinq missions. Tu en as terminé ' + completedCount() + ' sur 5.', 'error');
     return;
   }
   const video = document.getElementById('football-video');
@@ -1234,7 +1081,6 @@ function navigate(destination, missionId = 0, recordHistory = true) {
   route = destination;
   if (destination === 'mission') activeMission = missionId;
   renderCurrent(true);
-  syncHistory(recordHistory ? 'push' : 'replace');
 }
 
 function startJourney() {
@@ -1410,28 +1256,28 @@ function verifierDepot(draggedElement, container) {
 
 function finishMission(id) {
   if (!state.profile || route !== 'mission' || activeMission !== id || !canAccessMission(id)) return;
-  if (state.missions[id].completed) { notify('Mission déjà validée : le bonus a déjà été attribué.'); return; }
+  if (state.missions[id].completed) return;
   if (correctCount(id) !== MISSIONS[id].items.length) { notify('Associe correctement tous les éléments avant de terminer la mission.', 'error'); return; }
   state.missions[id].completed = true;
   persist();
   missionFeedback = null;
   renderCurrent(false);
+  const last = id === MISSIONS.length - 1;
   openDialog('MISSION ACCOMPLIE !', [
     el('strong', { className: 'accent' }, '+100 points bonus'), el('br'),
-    `Bien joué, ${state.profile.nickname} ! Tu as gagné ${state.missions[id].score} points sur cette mission.`, el('br'),
-    id < 4
-      ? ['La mission suivante est maintenant débloquée : ', el('strong', null, MISSIONS[id + 1].title + '.')]
-      : ['Les cinq missions sont terminées. ', el('strong', null, 'Place au quiz final !')],
-    el('br'), 'Ton score global : ', el('strong', null, formatPoints(state.totalPoints) + ' points.')
+    `Bravo ${state.profile.nickname} ! Tu as gagné ${state.missions[id].score} points sur cette mission.`, el('br'),
+    last ? ['Les trois missions sont terminées. ', el('strong', null, 'Place au quiz final !')]
+      : ['La mission suivante est débloquée : ', el('strong', null, MISSIONS[id + 1].title + '.')]
   ], [
     el('button', { type: 'button', className: 'button secondary', dataset: { route: 'dashboard' } }, 'MON BILAN'),
-    el('button', { type: 'button', className: 'button', dataset: { action: 'next-mission', id } }, id < 4 ? 'MISSION SUIVANTE' : 'LE QUIZ FINAL', icon('arrow'))
+    el('button', { type: 'button', className: 'button', dataset: { action: 'next-mission', id } }, last ? 'LE QUIZ FINAL' : 'MISSION SUIVANTE', icon('arrow'))
   ], 'success');
 }
+
 function goToNextMission(id) {
-  if (!Number.isInteger(id) || id < 0 || id >= 5 || !state.profile || !state.missions[id].completed) { notify('Valide d’abord la mission actuelle.', 'error'); return; }
+  if (!state.missions[id] || !state.missions[id].completed) return;
   closeDialog();
-  if (id === 4) navigate('quiz');
+  if (id === MISSIONS.length - 1) navigate('quiz');
   else navigate('mission', id + 1);
 }
 
@@ -1439,114 +1285,66 @@ function goToNextMission(id) {
    9. QUIZ FINAL (score enregistré dans le sessionStorage)
    ========================================================================== */
 function chooseQuizAnswer(option) {
-  if (!state.profile || route !== 'quiz' || !canAccessQuiz() || !quizRun || quizRun.finished || !Number.isInteger(option) || option < 0 || option > 3) return;
+  if (!state.profile || route !== 'quiz' || !quizRun || !Number.isInteger(option) || option < 0 || option > 3) return;
   quizRun.answers[quizRun.index] = option;
   renderCurrent(false);
   focusById('quiz-option-' + option);
 }
 function advanceQuiz() {
-  if (!state.profile || route !== 'quiz' || !canAccessQuiz() || !quizRun || quizRun.finished) return;
-  if (!Number.isInteger(quizRun.answers[quizRun.index])) { notify('Choisis une réponse avant de continuer.', 'error'); return; }
+  if (!state.profile || route !== 'quiz' || !quizRun) return;
+  if (quizRun.answers[quizRun.index] === null) { notify('Choisis une réponse avant de continuer.', 'error'); return; }
   if (quizRun.index < 9) {
     quizRun.index++;
     renderCurrent(false);
-    const heading = document.getElementById('quiz-question');
-    heading?.setAttribute('tabindex', '-1');
-    heading?.focus({ preventScroll: true });
     return;
   }
-  if (quizRun.answers.length !== 10 || quizRun.answers.some(a => !Number.isInteger(a) || a < 0 || a > 3)) return;
-  quizRun.finished = true;
-  const answers = quizRun.answers.slice();
-  const score = answers.filter((answer, i) => answer === QUESTIONS[i].correct).length;
-  const firstAttempt = !state.quiz.claimed;
-  if (firstAttempt) { state.quiz.firstScore = score; state.quiz.claimed = true; }
+  const score = quizRun.answers.filter((answer, i) => answer === QUESTIONS[i].correct).length;
   state.quiz.lastScore = score;
-  state.quiz.bestScore = Math.max(state.quiz.bestScore ?? 0, score);
-  state.quiz.lastAnswers = answers;
-  state.quiz.attempts++;
-  state.quiz.completedAt = new Date().toISOString();
   // Score du quiz dans le sessionStorage (cours : sessionStorage.setItem("score", 120)).
-  const sessionSaved = storageSupported();
-  if (sessionSaved) {
+  if (storageSupported()) {
     sessionStorage.setItem('scoreQuiz', score * 10);
-    sessionStorage.setItem('bonnesReponsesQuiz', score);
-    sessionStorage.setItem('reponsesQuiz', answers.join(','));
     sessionStorage.setItem('pseudoQuiz', state.profile.nickname);
-    sessionStorage.setItem('dateQuiz', state.quiz.completedAt);
   }
-  const localSaved = persist();
+  persist();
   quizRun = null;
   renderCurrent(true);
-  notify(!sessionSaved ? 'Quiz terminé, mais le navigateur a refusé le stockage de session.' : !localSaved ? 'Quiz terminé. Le score de cette session est conservé, mais la sauvegarde locale est indisponible.' : firstAttempt ? 'Quiz terminé ! +' + score * 10 + ' points. Ton résultat est enregistré.' : 'Nouveau score enregistré. La récompense unique n’a pas été ajoutée une seconde fois.', sessionSaved && localSaved ? 'success' : 'error');
 }
 
 function retryQuiz() {
-  if (!state.profile || !canAccessQuiz() || !state.quiz.claimed) return;
-  confirmAction('ON REMET ÇA ?', 'Tu peux améliorer ton meilleur score et décrocher le badge Champion du quiz. Ton bonus de ' + state.quiz.firstScore * 10 + ' points a déjà été attribué : aucun point supplémentaire ne sera ajouté.', 'C’EST REPARTI', () => {
-    quizRun = { index: 0, answers: Array(10).fill(null), finished: false };
-    navigate('quiz');
-  });
-}
-
-// Lecture du score de la session avec sessionStorage.getItem().
-function readQuizSession() {
-  if (!storageSupported() || sessionStorage.getItem('scoreQuiz') === null) return null;
-  const score = Number(sessionStorage.getItem('bonnesReponsesQuiz'));
-  const percentage = Number(sessionStorage.getItem('scoreQuiz'));
-  const answers = (sessionStorage.getItem('reponsesQuiz') || '').split(',').map(Number);
-  if (!isScore(score) || percentage !== score * 10 || answers.length !== 10 || !answers.every(a => Number.isInteger(a) && a >= 0 && a < 4)) return null;
-  if (answers.filter((answer, i) => answer === QUESTIONS[i].correct).length !== score) return null;
-  return { score, total: 10, percentage, answers, nickname: sessionStorage.getItem('pseudoQuiz'), completedAt: sessionStorage.getItem('dateQuiz') };
+  quizRun = { index: 0, answers: Array(10).fill(null) };
+  renderCurrent(true);
 }
 
 /* ==========================================================================
    10. JEU DU PENDU
    ========================================================================== */
+// La partie en cours reste en mémoire ; seul le dernier résultat est enregistré.
+let hangmanGame = null;
+
 function newHangmanGame() {
-  const previous = state.hangman.game?.word;
+  const previous = hangmanGame ? hangmanGame.word : '';
   const pool = WORDS.filter(word => word !== previous);
-  state.hangman.game = { id: Date.now().toString(36) + '-' + Math.random().toString(36).slice(2), word: pool[Math.floor(Math.random() * pool.length)], guesses: [], settled: false };
-  persist();
-}
-
-function settleHangmanGame() {
-  const game = state.hangman.game;
-  if (!game || game.settled) return false;
-  const status = getHangmanStatus(game);
-  if (!status.finished) return false;
-  game.settled = true;
-  state.hangman.lastResult = { won: status.won, word: game.word, errors: status.errors, date: new Date().toISOString() };
-  const newBonus = status.won && !state.hangman.bonusAwarded;
-  if (status.won) state.hangman.bonusAwarded = true;
-  return newBonus;
-}
-
-function ensureHangmanGame() {
-  if (!state.hangman.game) newHangmanGame();
-  else if (getHangmanStatus(state.hangman.game).finished && !state.hangman.game.settled) { settleHangmanGame(); persist(); }
+  hangmanGame = { word: pool[Math.floor(Math.random() * pool.length)], guesses: [] };
 }
 
 function guessLetter(letter) {
-  if (!state.profile || route !== 'hangman' || !ALPHABET.includes(letter)) return;
-  ensureHangmanGame();
-  const game = state.hangman.game;
-  if (getHangmanStatus(game).finished || game.guesses.includes(letter)) return;
-  game.guesses.push(letter);
-  const status = getHangmanStatus(game);
-  const awarded = status.finished ? settleHangmanGame() : false;
-  const saved = persist();
+  if (!state.profile || route !== 'hangman' || !hangmanGame) return;
+  if (getHangmanStatus(hangmanGame).finished || hangmanGame.guesses.includes(letter)) return;
+  hangmanGame.guesses.push(letter);
+  const status = getHangmanStatus(hangmanGame);
+  if (status.finished) {
+    state.hangman.lastResult = { won: status.won, word: hangmanGame.word, errors: status.errors };
+    if (status.won) state.hangman.everWon = true;
+    persist();
+  }
   renderCurrent(false);
-  const nextKey = byClass('letter-key', main).find(key => !key.disabled) || byId('hangman-replay');
-  if (nextKey) nextKey.focus({ preventScroll: true });
-  if (status.won) notify(!saved ? 'Victoire ! Le navigateur ne permet pas de sauvegarder le résultat de cette partie.' : awarded ? 'Bravo ' + state.profile.nickname + ' ! +50 points et le badge Maître du Pendu.' : 'Victoire ! Ton résultat est enregistré. Le bonus unique a déjà été obtenu.', saved ? 'success' : 'error');
-  else if (status.lost) notify('Perdu ! Le mot était : ' + game.word, 'info');
+  if (status.won) notify('Bravo ' + state.profile.nickname + ' !', 'success');
+  else if (status.lost) notify('Perdu ! Le mot était : ' + hangmanGame.word, 'info');
 }
+
 function replayHangman() {
-  if (!state.profile || route !== 'hangman') return;
-  const play = () => { newHangmanGame(); renderCurrent(false); };
-  if (state.hangman.game && state.hangman.game.guesses.length && !getHangmanStatus(state.hangman.game).finished) confirmAction('UN NOUVEAU COUP D’ENVOI ?', 'La partie en cours sera abandonnée. Ton dernier résultat et ton éventuel bonus restent conservés.', 'NOUVELLE PARTIE', play);
-  else play();
+  newHangmanGame();
+  renderCurrent(false);
 }
 
 /* ==========================================================================
@@ -1727,21 +1525,6 @@ function watchVideo() {
   });
 }
 
-function showCredits() {
-  const link = (href, text) => el('a', { href, target: '_blank', rel: 'noopener noreferrer' }, text);
-  openDialog('LA PASSION SE PARTAGE.', [
-    'FOOTBALL JOURNEY est un projet éducatif indépendant, sans affiliation avec une fédération ou un club.',
-    el('ul', null,
-      el('li', null, 'Photographie principale : ', link('https://www.pexels.com/photo/soccer-player-in-blue-jersey-facing-spotlight-36737326/', 'Ilian Martin / Pexels'), '.'),
-      el('li', null, 'Autres photographies : Pexels, Diego Santacruz, Chibili Mugala et Nguyễn Hoàng Văn.'),
-      el('li', null, 'Vidéo : ', link('https://www.pexels.com/video/people-playing-soccer-6077691/', 'Tima Miroshnichenko / Pexels'), '.'),
-      el('li', null, 'Objets du Drag & Drop : dessins SVG créés pour le projet.'),
-      el('li', null, 'Road to Glory : composition instrumentale originale, générée localement avec Web Audio.'),
-      el('li', null, 'Polices : celles déjà installées sur l’appareil (aucune police importée).')),
-    'Les médias distants nécessitent une connexion. Profil et progression restent sur ton appareil. Un projet réalisé en HTML, CSS et JavaScript.'
-  ], el('button', { type: 'button', className: 'button', dataset: { action: 'close-dialog' } }, 'RETOUR AU TERRAIN', icon('arrow')));
-}
-
 /* ==========================================================================
    14. ÉCOUTEURS D'ÉVÉNEMENTS (addEventListener uniquement, délégation sur document)
    ========================================================================== */
@@ -1795,7 +1578,6 @@ document.addEventListener('click', event => {
     case 'geolocation': getLocation(); break;
     case 'clear-location': clearLocation(); break;
     case 'clear-all': clearAllData(); break;
-    case 'credits': showCredits(); break;
     case 'close-dialog': closeDialog(); break;
     case 'confirm-dialog': { const callback = dialogConfirm; closeDialog(); if (callback) callback(); break; }
     case 'dismiss-toast': byId('toast').classList.remove('visible'); break;
@@ -1832,10 +1614,7 @@ document.addEventListener('keydown', event => {
   const inInput = target && (['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName) || target.isContentEditable);
   if (inInput || event.ctrlKey || event.altKey || event.metaKey) return;
   const quizOption = upData(target, 'quizOption');
-  if (route === 'hangman' && /^[a-zA-Z]$/.test(event.key)) {
-    event.preventDefault();
-    if (!event.repeat) guessLetter(event.key.toUpperCase());
-  } else if (route === 'quiz' && quizOption && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
+  if (route === 'quiz' && quizOption && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) {
     event.preventDefault();
     const direction = ['ArrowUp', 'ArrowLeft'].includes(event.key) ? -1 : 1;
     chooseQuizAnswer((Number(quizOption.dataset.quizOption) + direction + 4) % 4);
@@ -1849,23 +1628,15 @@ appDialog.addEventListener('click', event => {
 });
 appDialog.addEventListener('close', () => { if (!appDialog.open) dialogConfirm = null; });
 document.addEventListener('visibilitychange', () => { if (document.hidden && musicPlaying) pauseMusic(); });
-window.addEventListener('hashchange', () => {
-  const requested = parseRouteHash();
-  if (requested) navigate(requested.route, requested.missionId, false);
-  syncHistory();
-});
 // Événement storage (cours) : déclenché quand un AUTRE onglet du site modifie le localStorage.
 window.addEventListener('storage', event => {
   if (event.storageArea !== localStorage) return;
   if (event.key !== null && !LOCAL_KEYS.includes(event.key)) return;
   closeDialog();
-  const oldQuizClaimed = state.quiz.claimed;
   state = readState();
-  if (!canAccessQuiz() || (!oldQuizClaimed && state.quiz.claimed)) quizRun = null;
   applySettings();
   missionFeedback = null;
   renderCurrent(false);
-  syncHistory();
   notify(event.key === null ? 'Les données ont été effacées depuis un autre onglet.' : 'Changement détecté dans le stockage (« ' + event.key + ' ») depuis un autre onglet.');
 });
 
@@ -1874,10 +1645,5 @@ window.addEventListener('storage', event => {
    ========================================================================== */
 deriveState(state);
 applySettings();
-const sessionResult = readQuizSession();
-if (state.quiz.claimed && sessionResult && state.quiz.lastScore === sessionResult.score && state.quiz.completedAt === sessionResult.completedAt) state.quiz.lastAnswers = sessionResult.answers.slice();
-const initialDestination = parseRouteHash();
-if (state.profile && initialDestination) { route = initialDestination.route; activeMission = initialDestination.missionId; }
 renderCurrent();
-syncHistory();
 if (loadWarning) notify(loadWarning, 'error');
