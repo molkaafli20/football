@@ -68,26 +68,26 @@
   <!-- ==================== EN-TÊTE (menu) ==================== -->
   <header class="site-header" id="site-header">
     <div class="header-inner">
-      <button class="brand" type="button" data-route="home" aria-label="Football Journey, accueil">
+      <button class="brand lien-page" type="button" data-route="home" aria-label="Football Journey, accueil">
         <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-crest"></use></svg></span>
         <span class="brand-words">FOOTBALL<span>JOURNEY</span></span>
       </button>
       <nav class="primary-nav" id="primary-nav" aria-label="Navigation principale">
-        <button type="button" class="nav-button" data-route="home"><svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg>Accueil</button>
-        <button type="button" class="nav-button" data-route="quiz"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>Quiz final</button>
-        <button type="button" class="nav-button" data-route="hangman"><svg class="icon" aria-hidden="true"><use href="#i-pendu"></use></svg>Pendu</button>
-        <button type="button" class="nav-button" data-route="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Paramètres</button>
+        <button type="button" class="nav-button lien-page" data-route="home"><svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg>Accueil</button>
+        <button type="button" class="nav-button lien-page" data-route="quiz"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>Quiz final</button>
+        <button type="button" class="nav-button lien-page" data-route="hangman"><svg class="icon" aria-hidden="true"><use href="#i-pendu"></use></svg>Pendu</button>
+        <button type="button" class="nav-button lien-page" data-route="settings"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Paramètres</button>
       </nav>
       <div class="header-actions">
-        <button type="button" class="icon-button header-music" id="header-music" data-action="music" aria-label="Lire la musique d’ambiance" title="Musique"><svg class="icon" aria-hidden="true"><use id="header-music-icon" href="#i-volume-off"></use></svg></button>
-        <button type="button" class="icon-button header-theme" data-action="theme" aria-label="Changer de thème" title="Changer de thème"><svg class="icon" aria-hidden="true"><use id="header-theme-icon" href="#i-sun"></use></svg></button>
+        <button type="button" class="icon-button header-music btn-musique" id="header-music" aria-label="Lire la musique d’ambiance" title="Musique"><svg class="icon" aria-hidden="true"><use id="header-music-icon" href="#i-volume-off"></use></svg></button>
+        <button id="header-theme" type="button" class="icon-button header-theme" aria-label="Changer de thème" title="Changer de thème"><svg class="icon" aria-hidden="true"><use id="header-theme-icon" href="#i-sun"></use></svg></button>
         <span class="header-divider" aria-hidden="true"></span>
-        <button type="button" class="profile-button" data-action="profile" aria-label="Mon joueur">
+        <button id="profile-button" type="button" class="profile-button" aria-label="Mon joueur">
           <span class="avatar"><svg class="icon" id="avatar-icon" aria-hidden="true"><use href="#i-user"></use></svg><span id="avatar-initials" hidden></span></span>
           <span class="profile-label" id="header-pseudo">Mon joueur</span>
           <svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>
         </button>
-        <button type="button" class="icon-button menu-button" id="menu-button" data-action="menu" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" aria-hidden="true"><use id="menu-icon" href="#i-menu"></use></svg></button>
+        <button type="button" class="icon-button menu-button" id="menu-button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" aria-hidden="true"><use id="menu-icon" href="#i-menu"></use></svg></button>
       </div>
     </div>
   </header>
@@ -106,7 +106,7 @@
           <p class="hero-tagline">Deviens une légende !<span class="animated-ball" aria-hidden="true"><svg class="icon" aria-hidden="true"><use href="#i-ball"></use></svg></span></p>
           <p class="hero-copy">Du terrain du quartier aux plus grands stades.<br>Apprends, relève les défis et écris ta propre histoire.</p>
           <div class="hero-actions">
-            <button type="button" class="button" data-action="start">COMMENCER MON VOYAGE <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+            <button type="button" class="button btn-commencer">COMMENCER MON VOYAGE <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
           </div>
         </div>
       </section>
@@ -117,7 +117,7 @@
           <div><div class="eyebrow">TON PARCOURS VERS LA GLOIRE</div><h2 class="display" id="home-path-title">TROIS ÉTAPES. UN RÊVE.</h2></div>
         </div>
         <div class="mission-grid">
-          <button type="button" class="mission-card locked" id="carte-mission-0" data-action="mission" data-id="0">
+          <button type="button" class="mission-card locked" id="carte-mission-0">
             <div class="mission-card-image">
               <img src="https://images.pexels.com/photos/114296/pexels-photo-114296.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=650" alt="" loading="lazy">
               <span class="mission-number">01</span>
@@ -129,7 +129,7 @@
               <div class="mission-card-footer"><span id="carte-mission-0-texte">Chaque chose en son temps</span><svg class="icon" aria-hidden="true"><use id="carte-mission-0-fleche" href="#i-lock"></use></svg></div>
             </div>
           </button>
-          <button type="button" class="mission-card locked" id="carte-mission-1" data-action="mission" data-id="1">
+          <button type="button" class="mission-card locked" id="carte-mission-1">
             <div class="mission-card-image">
               <img src="https://images.pexels.com/photos/19582958/pexels-photo-19582958.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=650" alt="" loading="lazy">
               <span class="mission-number">02</span>
@@ -141,7 +141,7 @@
               <div class="mission-card-footer"><span id="carte-mission-1-texte">Chaque chose en son temps</span><svg class="icon" aria-hidden="true"><use id="carte-mission-1-fleche" href="#i-lock"></use></svg></div>
             </div>
           </button>
-          <button type="button" class="mission-card locked" id="carte-mission-2" data-action="mission" data-id="2">
+          <button type="button" class="mission-card locked" id="carte-mission-2">
             <div class="mission-card-image">
               <img src="https://images.pexels.com/photos/12616082/pexels-photo-12616082.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=650" alt="" loading="lazy">
               <span class="mission-number">03</span>
@@ -298,7 +298,7 @@
           <div class="home-metrics">
             <div class="home-metric"><strong><span id="player-missions">0</span><small class="unit muted"> / 3</small></strong><span>Missions terminées</span></div>
             <div class="home-metric"><strong><span id="player-percent">0</span><small class="unit"> %</small></strong><span>Progression du parcours</span></div>
-            <button class="button secondary" type="button" data-action="start">CONTINUER <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+            <button class="button secondary btn-commencer" type="button">CONTINUER <svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
           </div>
         </div>
         <div class="container player-progress">
@@ -319,7 +319,7 @@
           <p class="immersion-copy">La pelouse, les projecteurs, le premier coup de sifflet. Mets-toi dans l’ambiance : ton aventure ne fait que commencer.</p>
           <div class="audio-player">
             <div class="audio-top">
-              <button type="button" class="audio-play" data-action="music" aria-label="Lire ou mettre en pause la musique"><svg class="icon" aria-hidden="true"><use class="js-audio-icon" href="#i-play"></use></svg></button>
+              <button type="button" class="audio-play btn-musique" aria-label="Lire ou mettre en pause la musique"><svg class="icon" aria-hidden="true"><use class="js-audio-icon" href="#i-play"></use></svg></button>
               <div class="audio-title"><strong>Road to Glory</strong><small id="audio-status">Musique d’ambiance · Lecture manuelle</small></div>
               <div class="equalizer" id="equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             </div>
@@ -336,7 +336,7 @@
 
     <!-- ==================== PAGE MISSION 1 : DRAG & DROP ==================== -->
     <div class="container page page-view" id="page-mission-0" hidden>
-      <button type="button" class="text-button back-link" data-route="home"><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>Retour à l’accueil</button>
+      <button type="button" class="text-button back-link lien-page" data-route="home"><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>Retour à l’accueil</button>
       <div class="mission-heading">
         <div><div class="eyebrow">MISSION 01 / 03 · 5 - 8 ans</div><h1 class="display">Le rêve commence</h1><p>Un ballon, des amis et un grand rêve. Ton histoire commence sur le terrain du quartier.</p></div>
       </div>
@@ -397,15 +397,15 @@
         <div class="feedback" id="feedback-0" role="status" aria-live="polite"><svg class="icon" aria-hidden="true"><use id="feedback-0-icone" href="#i-info"></use></svg><span id="feedback-0-texte">Une erreur ? Lis l’explication, puis réessaie.</span></div>
         <div class="mission-bottom">
           <p id="bas-0">Place tous les éléments pour terminer la mission.</p>
-          <button type="button" class="button" id="terminer-0" data-action="finish-mission" data-id="0" disabled>TERMINER LA MISSION <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
-          <button type="button" class="button" id="suivant-0" data-action="next-mission" data-id="0" hidden>MISSION SUIVANTE<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+          <button type="button" class="button" id="terminer-0" disabled>TERMINER LA MISSION <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <button type="button" class="button" id="suivant-0" hidden>MISSION SUIVANTE<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
         </div>
       </section>
     </div>
 
     <!-- ==================== PAGE MISSION 2 : DRAG & DROP ==================== -->
     <div class="container page page-view" id="page-mission-1" hidden>
-      <button type="button" class="text-button back-link" data-route="home"><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>Retour à l’accueil</button>
+      <button type="button" class="text-button back-link lien-page" data-route="home"><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>Retour à l’accueil</button>
       <div class="mission-heading">
         <div><div class="eyebrow">MISSION 02 / 03 · 9 - 12 ans</div><h1 class="display">L’école de football</h1><p>Bienvenue au club ! Tu découvres l’entraînement, les règles et la vie d’équipe.</p></div>
       </div>
@@ -463,15 +463,15 @@
         <div class="feedback" id="feedback-1" role="status" aria-live="polite"><svg class="icon" aria-hidden="true"><use id="feedback-1-icone" href="#i-info"></use></svg><span id="feedback-1-texte">Une erreur ? Lis l’explication, puis réessaie.</span></div>
         <div class="mission-bottom">
           <p id="bas-1">Place tous les éléments pour terminer la mission.</p>
-          <button type="button" class="button" id="terminer-1" data-action="finish-mission" data-id="1" disabled>TERMINER LA MISSION <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
-          <button type="button" class="button" id="suivant-1" data-action="next-mission" data-id="1" hidden>MISSION SUIVANTE<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+          <button type="button" class="button" id="terminer-1" disabled>TERMINER LA MISSION <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <button type="button" class="button" id="suivant-1" hidden>MISSION SUIVANTE<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
         </div>
       </section>
     </div>
 
     <!-- ==================== PAGE MISSION 3 : DRAG & DROP ==================== -->
     <div class="container page page-view" id="page-mission-2" hidden>
-      <button type="button" class="text-button back-link" data-route="home"><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>Retour à l’accueil</button>
+      <button type="button" class="text-button back-link lien-page" data-route="home"><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>Retour à l’accueil</button>
       <div class="mission-heading">
         <div><div class="eyebrow">MISSION 03 / 03 · 13 - 16 ans</div><h1 class="display">Le jeune talent</h1><p>Ta technique s’affine. Il est temps de trouver ta place et de comprendre le collectif.</p></div>
       </div>
@@ -543,8 +543,8 @@
         <div class="feedback" id="feedback-2" role="status" aria-live="polite"><svg class="icon" aria-hidden="true"><use id="feedback-2-icone" href="#i-info"></use></svg><span id="feedback-2-texte">Une erreur ? Lis l’explication, puis réessaie.</span></div>
         <div class="mission-bottom">
           <p id="bas-2">Place tous les éléments pour terminer la mission.</p>
-          <button type="button" class="button" id="terminer-2" data-action="finish-mission" data-id="2" disabled>TERMINER LA MISSION <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
-          <button type="button" class="button" id="suivant-2" data-action="next-mission" data-id="2" hidden>LE QUIZ FINAL M’ATTEND<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+          <button type="button" class="button" id="terminer-2" disabled>TERMINER LA MISSION <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <button type="button" class="button" id="suivant-2" hidden>LE QUIZ FINAL M’ATTEND<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
         </div>
       </section>
     </div>
@@ -663,7 +663,7 @@
           </section>
           <div class="quiz-bottom">
             <p>Choisis une réponse, puis passe à la question suivante.</p>
-            <button type="button" class="button" id="quiz-next" data-action="quiz-next" disabled><span id="quiz-next-label">QUESTION SUIVANTE</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+            <button type="button" class="button" id="quiz-next" disabled><span id="quiz-next-label">QUESTION SUIVANTE</span><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
           </div>
         </div>
       </div>
@@ -678,8 +678,8 @@
         </div>
         <p class="result-message"><strong id="result-message"></strong></p>
         <div class="result-actions">
-          <button type="button" class="button" data-route="hangman">JOUER AU PENDU<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
-          <button type="button" class="button secondary" data-action="quiz-retry"><svg class="icon" aria-hidden="true"><use href="#i-replay"></use></svg>REJOUER</button>
+          <button type="button" class="button lien-page" data-route="hangman">JOUER AU PENDU<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></button>
+          <button id="quiz-retry" type="button" class="button secondary"><svg class="icon" aria-hidden="true"><use href="#i-replay"></use></svg>REJOUER</button>
         </div>
       </section>
     </div>
@@ -716,7 +716,7 @@
           </div>
           <div class="hangman-message" id="hangman-message" role="status" aria-live="polite"><strong id="hangman-title"></strong><span id="hangman-text"></span></div>
           <div class="game-bottom">
-            <button type="button" id="hangman-replay" class="button secondary" data-action="hangman-replay"><svg class="icon" aria-hidden="true"><use href="#i-replay"></use></svg>REJOUER</button>
+            <button type="button" id="hangman-replay" class="button secondary"><svg class="icon" aria-hidden="true"><use href="#i-replay"></use></svg>REJOUER</button>
             <p>Ton dernier résultat est enregistré dans le localStorage.</p>
           </div>
         </div>
@@ -744,8 +744,8 @@
           <section class="settings-group">
             <h2 class="display">MA POSITION</h2>
             <div class="location-actions">
-              <button type="button" class="button secondary" id="geo-button" data-action="geolocation"><svg class="icon" aria-hidden="true"><use href="#i-location"></use></svg><span id="geo-label">AUTORISER MA LOCALISATION</span></button>
-              <button type="button" class="text-button" id="geo-clear" data-action="clear-location" hidden>Effacer</button>
+              <button type="button" class="button secondary" id="geo-button"><svg class="icon" aria-hidden="true"><use href="#i-location"></use></svg><span id="geo-label">AUTORISER MA LOCALISATION</span></button>
+              <button type="button" class="text-button" id="geo-clear" hidden>Effacer</button>
             </div>
             <p class="location-output success" id="geo-coords" hidden></p>
             <p class="location-output" id="location-output" role="status" hidden></p>
@@ -756,7 +756,7 @@
             <h2 class="display">MUSIQUE</h2>
             <div class="setting-row">
               <span class="setting-label">Road to Glory</span>
-              <button type="button" class="audio-play" data-action="music" aria-label="Lire ou mettre en pause la musique"><svg class="icon" aria-hidden="true"><use class="js-audio-icon" href="#i-play"></use></svg></button>
+              <button type="button" class="audio-play btn-musique" aria-label="Lire ou mettre en pause la musique"><svg class="icon" aria-hidden="true"><use class="js-audio-icon" href="#i-play"></use></svg></button>
             </div>
             <div class="setting-row">
               <label class="setting-label" for="settings-volume">Volume</label>
@@ -771,8 +771,8 @@
             <div class="setting-row">
               <span class="setting-label" id="theme-label">Mode</span>
               <div class="theme-control" role="group" aria-labelledby="theme-label">
-                <button type="button" id="theme-dark" data-action="set-theme" data-theme-choice="dark"><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg>Sombre</button>
-                <button type="button" id="theme-light" data-action="set-theme" data-theme-choice="light"><svg class="icon" aria-hidden="true"><use href="#i-sun"></use></svg>Clair</button>
+                <button type="button" id="theme-dark"><svg class="icon" aria-hidden="true"><use href="#i-moon"></use></svg>Sombre</button>
+                <button type="button" id="theme-light"><svg class="icon" aria-hidden="true"><use href="#i-sun"></use></svg>Clair</button>
               </div>
             </div>
             <div class="setting-row">
@@ -788,7 +788,7 @@
             <p class="setting-help wide">Ce qui est enregistré dans le localStorage de ce navigateur :</p>
             <!-- Liste remplie par script.js avec localStorage.length et localStorage.key(i) -->
             <ul class="stored-data" id="stored-data"></ul>
-            <button type="button" class="text-button danger-text" data-action="clear-all"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>Supprimer toutes mes données</button>
+            <button id="clear-all" type="button" class="text-button danger-text"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>Supprimer toutes mes données</button>
           </section>
         </div>
       </div>
@@ -812,7 +812,7 @@
       <div class="footer-links">
         <span class="muted storage-status">Projet éducatif · 2026</span>
         <span class="muted">Photos et vidéo : Pexels</span>
-        <button type="button" data-route="settings">Paramètres</button>
+        <button type="button" data-route="settings" class="lien-page">Paramètres</button>
       </div>
     </div>
   </footer>
@@ -821,7 +821,7 @@
   <aside id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true">
     <svg class="icon" aria-hidden="true"><use id="toast-icon-use" href="#i-info"></use></svg>
     <p id="toast-text"></p>
-    <button type="button" class="icon-button" data-action="dismiss-toast" aria-label="Fermer le message"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+    <button id="toast-close" type="button" class="icon-button" aria-label="Fermer le message"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
   </aside>
 
   <script src="script.js" defer></script>

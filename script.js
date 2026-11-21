@@ -7,7 +7,8 @@
    - afficher la bonne page (attribut hidden) et mettre à jour les textes (textContent) ;
    - Drag & Drop, quiz, pendu, carte des stades, musique ;
    - Web Storage (localStorage / sessionStorage) et géolocalisation.
-   Sélection : document.getElementById et document.getElementsByClassName (sans raccourci). Événements : addEventListener.
+   Sélection : document.getElementById et document.getElementsByClassName (sans raccourci).
+   Événements : chaque bouton a son propre addEventListener (section 13).
    ========================================================================== */
 
 /* ==========================================================================
@@ -26,15 +27,6 @@ const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'volume', 'mode', 'luminos
 /* ==========================================================================
    2. OUTILS
    ========================================================================== */
-// Remonte les parents d'un élément jusqu'à trouver celui qui a l'attribut data-<cle>.
-function findData(node, cle) {
-  while (node && node.nodeType === 1) {
-    if (node.dataset && node.dataset[cle] !== undefined) return node;
-    node = node.parentNode;
-  }
-  return null;
-}
-
 // Petit message en bas de l'écran.
 let toastTimer = null;
 function notify(message, type = 'info') {
@@ -264,6 +256,7 @@ function requestProfile() {
 }
 
 function navigate(page, missionId = 0) {
+  toggleMenu(false);
   if (page !== 'home' && !requestProfile()) return;
   if (page === 'mission') {
     if (!canAccessMission(missionId)) {
@@ -733,60 +726,120 @@ musique.addEventListener('pause', updateMusicButtons);
 document.getElementById('football-video').addEventListener('play', () => musique.pause());
 
 /* ==========================================================================
-   13. ÉCOUTEURS D'ÉVÉNEMENTS (addEventListener sur document)
+   13. ÉCOUTEURS D'ÉVÉNEMENTS
+   Méthode du cours : element.addEventListener('click', function () { ... });
+   Chaque bouton de index.html reçoit ici son propre écouteur.
    ========================================================================== */
-document.getElementById('register-form').addEventListener('submit', event => {
-  event.preventDefault();
+
+// ---------- En-tête ----------
+document.getElementById('menu-button').addEventListener('click', function () {
+  const ouvert = document.getElementById('primary-nav').classList.contains('open');
+  toggleMenu(!ouvert);
+});
+document.getElementById('header-theme').addEventListener('click', function () {
+  if (state.settings.theme === 'dark') setTheme('light');
+  else setTheme('dark');
+});
+document.getElementById('profile-button').addEventListener('click', function () {
+  navigate('settings');
+});
+
+// ---------- Liens vers les pages (menu, logo, « Retour à l’accueil »...) ----------
+// Chaque lien a la classe « lien-page » et le nom de la page dans data-route.
+Array.from(document.getElementsByClassName('lien-page')).forEach(function (lien) {
+  lien.addEventListener('click', function () {
+    navigate(lien.dataset.route);
+  });
+});
+
+// ---------- Accueil ----------
+// Deux boutons : « Commencer mon voyage » et « Continuer ».
+Array.from(document.getElementsByClassName('btn-commencer')).forEach(function (bouton) {
+  bouton.addEventListener('click', startJourney);
+});
+
+// Les 3 cartes de mission.
+for (let i = 0; i < NB_MISSIONS; i++) {
+  document.getElementById('carte-mission-' + i).addEventListener('click', function () {
+    navigate('mission', i);
+  });
+}
+
+// Les 8 points de la carte des stades.
+Array.from(document.getElementsByClassName('map-marker')).forEach(function (point) {
+  point.addEventListener('click', function () {
+    showStadium(point.dataset.stadium);
+  });
+});
+
+// Formulaire d'inscription.
+document.getElementById('register-form').addEventListener('submit', function (event) {
+  event.preventDefault(); // empêche le rechargement de la page
   submitProfile(event.target);
 });
 
-document.addEventListener('click', event => {
-  const target = event.target;
-  if (!document.getElementById('site-header').contains(target)) toggleMenu(false);
+// ---------- Missions : boutons « Terminer » et « Mission suivante » ----------
+for (let i = 0; i < NB_MISSIONS; i++) {
+  document.getElementById('terminer-' + i).addEventListener('click', function () {
+    finishMission(i);
+  });
+  document.getElementById('suivant-' + i).addEventListener('click', function () {
+    goToNextMission(i);
+  });
+}
 
-  const stadium = findData(target, 'stadium');
-  if (stadium) { showStadium(stadium.dataset.stadium); return; }
-  const option = findData(target, 'quizOption');
-  if (option) { chooseQuizAnswer(option); return; }
-  const key = findData(target, 'letter');
-  if (key) { guessLetter(key); return; }
-  const link = findData(target, 'route');
-  if (link) { toggleMenu(false); navigate(link.dataset.route); return; }
-  const button = findData(target, 'action');
-  if (!button || button.disabled) return;
-  switch (button.dataset.action) {
-    case 'start': startJourney(); break;
-    case 'profile': if (requestProfile()) navigate('settings'); break;
-    case 'mission': navigate('mission', Number(button.dataset.id)); break;
-    case 'finish-mission': finishMission(Number(button.dataset.id)); break;
-    case 'next-mission': goToNextMission(Number(button.dataset.id)); break;
-    case 'quiz-next': advanceQuiz(); break;
-    case 'quiz-retry': startQuiz(); break;
-    case 'hangman-replay': newHangmanGame(); break;
-    case 'music': toggleMusic(); break;
-    case 'theme': setTheme(state.settings.theme === 'dark' ? 'light' : 'dark'); break;
-    case 'set-theme': setTheme(button.dataset.themeChoice); break;
-    case 'menu': toggleMenu(!document.getElementById('primary-nav').classList.contains('open')); break;
-    case 'geolocation': getLocation(); break;
-    case 'clear-location': clearLocation(); break;
-    case 'clear-all': clearAllData(); break;
-    case 'dismiss-toast': document.getElementById('toast').classList.remove('visible'); break;
-  }
+// ---------- Quiz ----------
+Array.from(document.getElementsByClassName('quiz-option')).forEach(function (reponse) {
+  reponse.addEventListener('click', function () {
+    chooseQuizAnswer(reponse);
+  });
+});
+document.getElementById('quiz-next').addEventListener('click', advanceQuiz);
+document.getElementById('quiz-retry').addEventListener('click', startQuiz);
+
+// ---------- Pendu ----------
+Array.from(document.getElementsByClassName('letter-key')).forEach(function (touche) {
+  touche.addEventListener('click', function () {
+    guessLetter(touche);
+  });
+});
+document.getElementById('hangman-replay').addEventListener('click', newHangmanGame);
+
+// ---------- Musique (3 boutons : en-tête, accueil, paramètres) ----------
+Array.from(document.getElementsByClassName('btn-musique')).forEach(function (bouton) {
+  bouton.addEventListener('click', toggleMusic);
 });
 
-// Curseurs du volume et de la luminosité.
-document.addEventListener('input', event => {
-  const input = event.target;
-  if (input.dataset.setting === 'volume') {
-    state.settings.volume = Number(input.value) / 100;
-  } else if (input.dataset.setting === 'brightness') {
-    state.settings.brightness = Number(input.value);
-  } else {
-    return;
-  }
+// Curseurs du volume (accueil et paramètres) : événement « input » à chaque mouvement.
+Array.from(document.getElementsByClassName('js-volume-input')).forEach(function (curseur) {
+  curseur.addEventListener('input', function () {
+    state.settings.volume = Number(curseur.value) / 100;
+    applySettings();
+    persist();
+    refreshAll();
+  });
+});
+
+// ---------- Paramètres ----------
+document.getElementById('geo-button').addEventListener('click', getLocation);
+document.getElementById('geo-clear').addEventListener('click', clearLocation);
+document.getElementById('theme-dark').addEventListener('click', function () {
+  setTheme('dark');
+});
+document.getElementById('theme-light').addEventListener('click', function () {
+  setTheme('light');
+});
+document.getElementById('brightness-range').addEventListener('input', function () {
+  state.settings.brightness = Number(document.getElementById('brightness-range').value);
   applySettings();
   persist();
   refreshAll();
+});
+document.getElementById('clear-all').addEventListener('click', clearAllData);
+
+// ---------- Message en bas de l'écran ----------
+document.getElementById('toast-close').addEventListener('click', function () {
+  document.getElementById('toast').classList.remove('visible');
 });
 
 // Événement storage (cours) : un AUTRE onglet du site a modifié le localStorage.
