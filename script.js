@@ -7,7 +7,7 @@
    - afficher la bonne page (attribut hidden) et mettre à jour les textes (textContent) ;
    - Drag & Drop, quiz, pendu, carte des stades, musique ;
    - Web Storage (localStorage / sessionStorage) et géolocalisation.
-   Sélection : getElementById et getElementsByClassName. Événements : addEventListener.
+   Sélection : document.getElementById et document.getElementsByClassName (sans raccourci). Événements : addEventListener.
    ========================================================================== */
 
 /* ==========================================================================
@@ -26,10 +26,6 @@ const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'volume', 'mode', 'luminos
 /* ==========================================================================
    2. OUTILS
    ========================================================================== */
-const byId = id => document.getElementById(id);
-const byClass = (name, root = document) => Array.from(root.getElementsByClassName(name));
-const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
-
 // Remonte les parents d'un élément jusqu'à trouver celui qui a l'attribut data-<cle>.
 function findData(node, cle) {
   while (node && node.nodeType === 1) {
@@ -39,19 +35,14 @@ function findData(node, cle) {
   return null;
 }
 
-// Change l'icône d'un <use> (les icônes sont définies dans index.html : #i-play, #i-pause...).
-function setIcon(use, name) {
-  use.setAttribute('href', '#i-' + name);
-}
-
 // Petit message en bas de l'écran.
 let toastTimer = null;
 function notify(message, type = 'info') {
   clearTimeout(toastTimer);
-  byId('toast-text').textContent = message;
-  byId('toast').className = 'toast visible' + (type === 'error' ? ' error' : '');
-  setIcon(byId('toast-icon-use'), type === 'success' ? 'check-circle' : 'info');
-  toastTimer = setTimeout(() => byId('toast').classList.remove('visible'), 6500);
+  document.getElementById('toast-text').textContent = message;
+  document.getElementById('toast').className = 'toast visible' + (type === 'error' ? ' error' : '');
+  document.getElementById('toast-icon-use').setAttribute('href', '#i-' + (type === 'success' ? 'check-circle' : 'info'));
+  toastTimer = setTimeout(() => document.getElementById('toast').classList.remove('visible'), 6500);
 }
 
 /* ==========================================================================
@@ -83,8 +74,11 @@ function readState() {
     });
     if (checked.valid) s.profile = checked.profile;
   }
-  if (localStorage.getItem('volume') !== null) s.settings.volume = clamp(Number(localStorage.getItem('volume')) || 0, 0, 1);
-  if (localStorage.getItem('luminosite') !== null) s.settings.brightness = clamp(Number(localStorage.getItem('luminosite')) || 100, 60, 120);
+  // On garde la valeur enregistrée seulement si elle est valide (volume entre 0 et 1, luminosité entre 60 et 120).
+  const volume = Number(localStorage.getItem('volume'));
+  if (localStorage.getItem('volume') !== null && volume >= 0 && volume <= 1) s.settings.volume = volume;
+  const luminosite = Number(localStorage.getItem('luminosite'));
+  if (luminosite >= 60 && luminosite <= 120) s.settings.brightness = luminosite;
   s.settings.theme = localStorage.getItem('mode') === 'light' ? 'light' : 'dark';
   if (localStorage.getItem('latitude') !== null) {
     s.settings.location = {
@@ -169,9 +163,13 @@ function validateProfile(input) {
 let state = readState();
 let currentPage = 'home';
 
-const completedCount = () => state.missions.filter(m => m.completed).length;
+function completedCount() {
+  return state.missions.filter(m => m.completed).length;
+}
 // Une mission est ouverte quand toutes les précédentes sont terminées.
-const canAccessMission = id => state.missions.slice(0, id).every(m => m.completed);
+function canAccessMission(id) {
+  return state.missions.slice(0, id).every(m => m.completed);
+}
 
 /* ==========================================================================
    4. AFFICHAGE : montrer une page et mettre à jour les textes
@@ -179,9 +177,9 @@ const canAccessMission = id => state.missions.slice(0, id).every(m => m.complete
 // Montre une seule page de <main> et cache les autres (attribut hidden).
 function showPage(name) {
   currentPage = name;
-  PAGES.forEach(page => { byId('page-' + page).hidden = page !== name; });
+  PAGES.forEach(page => { document.getElementById('page-' + page).hidden = page !== name; });
   const menu = name.startsWith('mission') ? 'home' : name;
-  byClass('nav-button').forEach(button => {
+  Array.from(document.getElementsByClassName('nav-button')).forEach(button => {
     button.classList.toggle('active', button.dataset.route === menu);
     if (button.dataset.route === menu) button.setAttribute('aria-current', 'page');
     else button.removeAttribute('aria-current');
@@ -194,51 +192,51 @@ function showPage(name) {
 function refreshAll() {
   const p = state.profile;
   // En-tête
-  byId('header-pseudo').textContent = p ? p.nickname : 'Mon joueur';
-  byId('avatar-initials').textContent = p ? (p.firstName[0] + p.lastName[0]).toUpperCase() : '';
-  byId('avatar-initials').hidden = !p;
-  byId('avatar-icon').toggleAttribute('hidden', Boolean(p));
-  setIcon(byId('header-theme-icon'), state.settings.theme === 'dark' ? 'sun' : 'moon');
+  document.getElementById('header-pseudo').textContent = p ? p.nickname : 'Mon joueur';
+  document.getElementById('avatar-initials').textContent = p ? (p.firstName[0] + p.lastName[0]).toUpperCase() : '';
+  document.getElementById('avatar-initials').hidden = !p;
+  document.getElementById('avatar-icon').toggleAttribute('hidden', Boolean(p));
+  document.getElementById('header-theme-icon').setAttribute('href', '#i-' + (state.settings.theme === 'dark' ? 'sun' : 'moon'));
 
   // Accueil : inscription OU carte du joueur
-  byId('hero-eyebrow').textContent = p ? 'BIENVENUE SUR LE TERRAIN, ' + p.nickname : 'LE COUP D’ENVOI DE TON HISTOIRE';
-  byId('registration').hidden = Boolean(p);
-  byId('player-home').hidden = !p;
+  document.getElementById('hero-eyebrow').textContent = p ? 'BIENVENUE SUR LE TERRAIN, ' + p.nickname : 'LE COUP D’ENVOI DE TON HISTOIRE';
+  document.getElementById('registration').hidden = Boolean(p);
+  document.getElementById('player-home').hidden = !p;
   const percent = Math.round(completedCount() / NB_MISSIONS * 100);
   if (p) {
-    byId('player-title').textContent = 'BIENVENUE, ' + p.nickname + '.';
-    byId('player-identity').textContent = p.firstName + ' ' + p.lastName + ' · ' + p.age + ' ans';
-    byId('player-missions').textContent = completedCount();
-    byId('player-percent').textContent = percent;
-    byId('player-bar').className = 'pct-' + Math.round(percent / 10) * 10;
+    document.getElementById('player-title').textContent = 'BIENVENUE, ' + p.nickname + '.';
+    document.getElementById('player-identity').textContent = p.firstName + ' ' + p.lastName + ' · ' + p.age + ' ans';
+    document.getElementById('player-missions').textContent = completedCount();
+    document.getElementById('player-percent').textContent = percent;
+    document.getElementById('player-bar').className = 'pct-' + Math.round(percent / 10) * 10;
   }
 
   // Cartes des missions : verrouillée, ouverte ou terminée
   for (let i = 0; i < NB_MISSIONS; i++) {
     const done = state.missions[i].completed;
     const open = canAccessMission(i);
-    byId('carte-mission-' + i).className = 'mission-card ' + (done ? 'complete' : open ? 'available' : 'locked');
-    setIcon(byId('carte-mission-' + i + '-icone'), done ? 'check' : open ? 'play' : 'lock');
-    setIcon(byId('carte-mission-' + i + '-fleche'), done ? 'check' : open ? 'arrow' : 'lock');
-    byId('carte-mission-' + i + '-texte').textContent = done ? 'Mission accomplie' : open ? 'Le coup d’envoi t’attend' : 'Chaque chose en son temps';
+    document.getElementById('carte-mission-' + i).className = 'mission-card ' + (done ? 'complete' : open ? 'available' : 'locked');
+    document.getElementById('carte-mission-' + i + '-icone').setAttribute('href', '#i-' + (done ? 'check' : open ? 'play' : 'lock'));
+    document.getElementById('carte-mission-' + i + '-fleche').setAttribute('href', '#i-' + (done ? 'check' : open ? 'arrow' : 'lock'));
+    document.getElementById('carte-mission-' + i + '-texte').textContent = done ? 'Mission accomplie' : open ? 'Le coup d’envoi t’attend' : 'Chaque chose en son temps';
     updateMission(i);
   }
 
   // Paramètres
   if (p) {
-    byId('info-firstName').textContent = p.firstName;
-    byId('info-lastName').textContent = p.lastName;
-    byId('info-nickname').textContent = p.nickname;
-    byId('info-age').textContent = p.age;
+    document.getElementById('info-firstName').textContent = p.firstName;
+    document.getElementById('info-lastName').textContent = p.lastName;
+    document.getElementById('info-nickname').textContent = p.nickname;
+    document.getElementById('info-age').textContent = p.age;
   }
   updateLocation();
-  byId('theme-dark').classList.toggle('active', state.settings.theme === 'dark');
-  byId('theme-light').classList.toggle('active', state.settings.theme === 'light');
-  byId('brightness-range').value = state.settings.brightness;
-  byId('brightness-value').textContent = state.settings.brightness + ' %';
+  document.getElementById('theme-dark').classList.toggle('active', state.settings.theme === 'dark');
+  document.getElementById('theme-light').classList.toggle('active', state.settings.theme === 'light');
+  document.getElementById('brightness-range').value = state.settings.brightness;
+  document.getElementById('brightness-value').textContent = state.settings.brightness + ' %';
   const volume = Math.round(state.settings.volume * 100);
-  byClass('js-volume-input').forEach(input => { input.value = volume; });
-  byClass('js-volume-value').forEach(span => { span.textContent = volume + ' %'; });
+  Array.from(document.getElementsByClassName('js-volume-input')).forEach(input => { input.value = volume; });
+  Array.from(document.getElementsByClassName('js-volume-value')).forEach(span => { span.textContent = volume + ' %'; });
   updateStoredData();
 }
 
@@ -248,8 +246,8 @@ function applySettings() {
   root.dataset.theme = state.settings.theme;
   Array.from(root.classList).filter(name => name.startsWith('brightness-')).forEach(name => root.classList.remove(name));
   root.classList.add('brightness-' + Math.round(state.settings.brightness / 5) * 5);
-  byId('meta-theme-color').setAttribute('content', state.settings.theme === 'dark' ? '#0b1217' : '#f1f5f0');
-  byId('musique').volume = state.settings.volume;
+  document.getElementById('meta-theme-color').setAttribute('content', state.settings.theme === 'dark' ? '#0b1217' : '#f1f5f0');
+  document.getElementById('musique').volume = state.settings.volume;
 }
 
 /* ==========================================================================
@@ -259,8 +257,8 @@ function applySettings() {
 function requestProfile() {
   if (state.profile) return true;
   showPage('home');
-  byId('registration').scrollIntoView({ block: 'center' });
-  byId('register-firstName').focus({ preventScroll: true });
+  document.getElementById('registration').scrollIntoView({ block: 'center' });
+  document.getElementById('register-firstName').focus({ preventScroll: true });
   notify('Premier coup de sifflet : crée ton joueur pour commencer ton aventure.');
   return false;
 }
@@ -275,7 +273,7 @@ function navigate(page, missionId = 0) {
     page = 'mission-' + missionId;
   }
   if (page === 'quiz') openQuiz();
-  byId('football-video').pause();
+  document.getElementById('football-video').pause();
   showPage(page);
 }
 
@@ -288,9 +286,9 @@ function startJourney() {
 }
 
 function toggleMenu(open) {
-  byId('primary-nav').classList.toggle('open', open);
-  byId('menu-button').setAttribute('aria-expanded', String(open));
-  setIcon(byId('menu-icon'), open ? 'close' : 'menu');
+  document.getElementById('primary-nav').classList.toggle('open', open);
+  document.getElementById('menu-button').setAttribute('aria-expanded', String(open));
+  document.getElementById('menu-icon').setAttribute('href', '#i-' + (open ? 'close' : 'menu'));
 }
 
 /* ==========================================================================
@@ -300,13 +298,13 @@ function submitProfile(form) {
   if (state.profile) return;
   const checked = validateProfile(Object.fromEntries(new FormData(form).entries()));
   ['firstName', 'lastName', 'nickname', 'age'].forEach(name => {
-    byId('register-' + name + '-error').textContent = checked.errors[name] || '';
-    byId('register-' + name).setAttribute('aria-invalid', String(Boolean(checked.errors[name])));
+    document.getElementById('register-' + name + '-error').textContent = checked.errors[name] || '';
+    document.getElementById('register-' + name).setAttribute('aria-invalid', String(Boolean(checked.errors[name])));
   });
-  byId('register-summary').hidden = checked.valid;
+  document.getElementById('register-summary').hidden = checked.valid;
   if (!checked.valid) {
-    byId('register-summary').textContent = 'Encore un petit effort : vérifie les champs indiqués.';
-    byId('register-' + Object.keys(checked.errors)[0]).focus();
+    document.getElementById('register-summary').textContent = 'Encore un petit effort : vérifie les champs indiqués.';
+    document.getElementById('register-' + Object.keys(checked.errors)[0]).focus();
     return;
   }
   state.profile = checked.profile;
@@ -321,8 +319,8 @@ function submitProfile(form) {
    ========================================================================== */
 // Clic sur un point : on l'allume et on affiche la fiche du stade (les fiches sont dans index.html).
 function showStadium(id) {
-  byClass('map-marker').forEach(marker => marker.classList.toggle('active', marker.dataset.stadium === id));
-  byClass('map-fiche').forEach(fiche => { fiche.hidden = fiche.id !== 'fiche-' + id; });
+  Array.from(document.getElementsByClassName('map-marker')).forEach(marker => marker.classList.toggle('active', marker.dataset.stadium === id));
+  Array.from(document.getElementsByClassName('map-fiche')).forEach(fiche => { fiche.hidden = fiche.id !== 'fiche-' + id; });
 }
 
 /* ==========================================================================
@@ -342,7 +340,7 @@ function drag(ev) {
 // Fin du déplacement (réussi ou non).
 function finDrag(ev) {
   ev.target.classList.remove('dragging');
-  byClass('drag-over').forEach(zone => zone.classList.remove('drag-over'));
+  Array.from(document.getElementsByClassName('drag-over')).forEach(zone => zone.classList.remove('drag-over'));
   removeDragData(ev);
 }
 
@@ -366,11 +364,11 @@ function drop(ev, container) {
 
 // Les éléments et les zones sont déjà dans le HTML : on ajoute les écouteurs une seule fois.
 function activerDragAndDrop() {
-  byClass('drag-item').forEach(item => {
+  Array.from(document.getElementsByClassName('drag-item')).forEach(item => {
     item.addEventListener('dragstart', drag);
     item.addEventListener('dragend', finDrag);
   });
-  byClass('drop-zone').forEach(container => {
+  Array.from(document.getElementsByClassName('drop-zone')).forEach(container => {
     container.addEventListener('dragenter', ev => { ev.preventDefault(); container.classList.add('drag-over'); });
     container.addEventListener('dragover', allowDrop);
     container.addEventListener('dragleave', () => container.classList.remove('drag-over'));
@@ -380,22 +378,22 @@ function activerDragAndDrop() {
 
 // Bonne zone : l'élément devient un fils de la zone (appendChild) et ne se déplace plus.
 function placeItem(item) {
-  byId('answers-' + item.dataset.cible).appendChild(item);
+  document.getElementById('answers-' + item.dataset.cible).appendChild(item);
   item.setAttribute('draggable', 'false');
   item.classList.add('placed');
 }
 
 function setFeedback(mission, type, message) {
-  byId('feedback-' + mission).className = 'feedback ' + type;
-  setIcon(byId('feedback-' + mission + '-icone'), type === 'success' ? 'check-circle' : 'info');
-  byId('feedback-' + mission + '-texte').textContent = message;
+  document.getElementById('feedback-' + mission).className = 'feedback ' + type;
+  document.getElementById('feedback-' + mission + '-icone').setAttribute('href', '#i-' + (type === 'success' ? 'check-circle' : 'info'));
+  document.getElementById('feedback-' + mission + '-texte').textContent = message;
 }
 
 // Vérifie le dépôt : « Bravo ! » ou message d'erreur qui explique la bonne réponse.
 function verifierDepot(item, zone) {
   const mission = Number(zone.dataset.mission);
   if (!state.profile || item.dataset.mission !== zone.dataset.mission || item.getAttribute('draggable') !== 'true') return;
-  byClass('drop-zone', byId('page-mission-' + mission)).forEach(z => z.classList.remove('is-error'));
+  Array.from(document.getElementById('page-mission-' + mission).getElementsByClassName('drop-zone')).forEach(z => z.classList.remove('is-error'));
   if (item.dataset.cible !== zone.id.replace('zone-', '')) {
     zone.classList.add('is-error');
     setFeedback(mission, 'error', item.dataset.erreur + ' ' + item.dataset.explication + ' Réessaie !');
@@ -410,29 +408,29 @@ function verifierDepot(item, zone) {
 
 // Compteur, zones pleines et boutons d'une mission.
 function updateMission(mission) {
-  const page = byId('page-mission-' + mission);
-  const items = byClass('drag-item', page);
+  const page = document.getElementById('page-mission-' + mission);
+  const items = Array.from(page.getElementsByClassName('drag-item'));
   const placed = items.filter(item => item.classList.contains('placed')).length;
   const done = state.missions[mission].completed;
-  byId('compteur-' + mission).textContent = placed;
-  byClass('drop-zone', page).forEach(zone => {
+  document.getElementById('compteur-' + mission).textContent = placed;
+  Array.from(page.getElementsByClassName('drop-zone')).forEach(zone => {
     const cible = zone.id.replace('zone-', '');
     const expected = items.filter(item => item.dataset.cible === cible).length;
-    const inside = byId('answers-' + cible).children.length;
+    const inside = document.getElementById('answers-' + cible).children.length;
     zone.classList.toggle('is-full', inside === expected);
-    if (byId('nombre-' + cible)) byId('nombre-' + cible).textContent = inside;
+    if (document.getElementById('nombre-' + cible)) document.getElementById('nombre-' + cible).textContent = inside;
   });
-  byId('terminer-' + mission).hidden = done;
-  byId('terminer-' + mission).disabled = placed < items.length;
-  byId('suivant-' + mission).hidden = !done;
-  byId('aide-' + mission).textContent = placed < items.length
+  document.getElementById('terminer-' + mission).hidden = done;
+  document.getElementById('terminer-' + mission).disabled = placed < items.length;
+  document.getElementById('suivant-' + mission).hidden = !done;
+  document.getElementById('aide-' + mission).textContent = placed < items.length
     ? 'Fais glisser chaque élément avec la souris et lâche-le dans la bonne zone.'
     : 'Toutes les associations sont correctes. ' + (done ? 'Tu peux continuer ton parcours.' : 'Valide maintenant ta mission pour débloquer la suite.');
-  byId('bas-' + mission).textContent = done ? 'Mission déjà terminée.' : 'Place tous les éléments pour terminer la mission.';
+  document.getElementById('bas-' + mission).textContent = done ? 'Mission déjà terminée.' : 'Place tous les éléments pour terminer la mission.';
 }
 
 function finishMission(mission) {
-  const items = byClass('drag-item', byId('page-mission-' + mission));
+  const items = Array.from(document.getElementById('page-mission-' + mission).getElementsByClassName('drag-item'));
   if (!items.every(item => item.classList.contains('placed'))) return;
   state.missions[mission].completed = true;
   persist();
@@ -450,12 +448,12 @@ function goToNextMission(mission) {
 function restoreMissions() {
   state.missions.forEach((m, mission) => {
     m.placed = m.placed.filter(id => {
-      const item = byId(id);
+      const item = document.getElementById(id);
       if (!item || item.dataset.mission !== String(mission) || !canAccessMission(mission)) return false;
       placeItem(item);
       return true;
     });
-    const total = byClass('drag-item', byId('page-mission-' + mission)).length;
+    const total = Array.from(document.getElementById('page-mission-' + mission).getElementsByClassName('drag-item')).length;
     m.completed = m.completed && m.placed.length === total;
     if (m.completed) setFeedback(mission, 'success', 'Mission accomplie ! Ta progression est enregistrée.');
   });
@@ -479,27 +477,27 @@ function startQuiz() {
   quizRunning = true;
   quizIndex = 0;
   quizAnswers = [];
-  byClass('quiz-option').forEach(button => button.classList.remove('selected'));
-  byId('quiz-game').hidden = false;
-  byId('quiz-result').hidden = true;
+  Array.from(document.getElementsByClassName('quiz-option')).forEach(button => button.classList.remove('selected'));
+  document.getElementById('quiz-game').hidden = false;
+  document.getElementById('quiz-result').hidden = true;
   showQuestion();
 }
 
 function showQuestion() {
-  for (let i = 0; i < 10; i++) byId('question-' + i).hidden = i !== quizIndex;
-  byId('quiz-step').textContent = 'QUESTION ' + (quizIndex + 1) + ' SUR 10';
-  byId('quiz-percent').textContent = (quizIndex + 1) * 10 + ' %';
-  byId('quiz-bar').className = 'pct-' + (quizIndex + 1) * 10;
-  byId('quiz-next').disabled = quizAnswers[quizIndex] === undefined;
-  byId('quiz-next-label').textContent = quizIndex === 9 ? 'DÉCOUVRIR MON SCORE' : 'QUESTION SUIVANTE';
+  for (let i = 0; i < 10; i++) document.getElementById('question-' + i).hidden = i !== quizIndex;
+  document.getElementById('quiz-step').textContent = 'QUESTION ' + (quizIndex + 1) + ' SUR 10';
+  document.getElementById('quiz-percent').textContent = (quizIndex + 1) * 10 + ' %';
+  document.getElementById('quiz-bar').className = 'pct-' + (quizIndex + 1) * 10;
+  document.getElementById('quiz-next').disabled = quizAnswers[quizIndex] === undefined;
+  document.getElementById('quiz-next-label').textContent = quizIndex === 9 ? 'DÉCOUVRIR MON SCORE' : 'QUESTION SUIVANTE';
 }
 
 function chooseQuizAnswer(button) {
   const question = Number(button.dataset.question);
   if (question !== quizIndex) return;
   quizAnswers[question] = Number(button.dataset.quizOption);
-  byClass('quiz-option', byId('question-' + question)).forEach(b => b.classList.toggle('selected', b === button));
-  byId('quiz-next').disabled = false;
+  Array.from(document.getElementById('question-' + question).getElementsByClassName('quiz-option')).forEach(b => b.classList.toggle('selected', b === button));
+  document.getElementById('quiz-next').disabled = false;
 }
 
 function advanceQuiz() {
@@ -524,14 +522,14 @@ function advanceQuiz() {
 
 function showQuizResult() {
   const score = state.quiz.lastScore;
-  byId('quiz-game').hidden = true;
-  byId('quiz-result').hidden = false;
-  byId('result-title-good').hidden = score < 8;
-  byId('result-title-work').hidden = score >= 8;
-  byId('result-score').textContent = score;
-  byId('result-ring').setAttribute('stroke-dashoffset', 339.3 * (1 - score / 10));
+  document.getElementById('quiz-game').hidden = true;
+  document.getElementById('quiz-result').hidden = false;
+  document.getElementById('result-title-good').hidden = score < 8;
+  document.getElementById('result-title-work').hidden = score >= 8;
+  document.getElementById('result-score').textContent = score;
+  document.getElementById('result-ring').setAttribute('stroke-dashoffset', 339.3 * (1 - score / 10));
   // Message demandé par le sujet : « Bravo [pseudo], tu as réussi [X]% de ta mission ! »
-  byId('result-message').textContent = 'Bravo ' + state.profile.nickname + ', tu as réussi ' + score * 10 + '% de ta mission !';
+  document.getElementById('result-message').textContent = 'Bravo ' + state.profile.nickname + ', tu as réussi ' + score * 10 + '% de ta mission !';
 }
 
 /* ==========================================================================
@@ -550,7 +548,7 @@ function newHangmanGame() {
   const choices = MOTS.filter(m => m !== word);
   word = choices[Math.floor(Math.random() * choices.length)];
   guesses = [];
-  byClass('letter-key').forEach(key => {
+  Array.from(document.getElementsByClassName('letter-key')).forEach(key => {
     key.disabled = false;
     key.classList.remove('good', 'bad');
   });
@@ -575,13 +573,13 @@ function guessLetter(key) {
 
 function updateHangman() {
   const status = hangmanStatus();
-  byId('attempts-left').textContent = 6 - status.errors;
-  byId('errors-count').textContent = status.errors;
-  Array.from(byId('error-dots').children).forEach((dot, i) => dot.classList.toggle('used', i < status.errors));
+  document.getElementById('attempts-left').textContent = 6 - status.errors;
+  document.getElementById('errors-count').textContent = status.errors;
+  Array.from(document.getElementById('error-dots').children).forEach((dot, i) => dot.classList.toggle('used', i < status.errors));
   // Une partie du bonhomme par erreur.
-  byClass('person', byId('gallows')).forEach((part, i) => part.toggleAttribute('hidden', i >= status.errors));
+  Array.from(document.getElementById('gallows').getElementsByClassName('person')).forEach((part, i) => part.toggleAttribute('hidden', i >= status.errors));
   // Une case par lettre du mot : « _ » tant que la lettre n'est pas trouvée.
-  Array.from(byId('word-slots').children).forEach((slot, i) => {
+  Array.from(document.getElementById('word-slots').children).forEach((slot, i) => {
     const letter = word[i];
     slot.hidden = !letter;
     if (!letter) return;
@@ -589,13 +587,13 @@ function updateHangman() {
     slot.textContent = found || status.finished ? letter : '_';
     slot.className = 'word-slot' + (found ? ' revealed' : status.lost ? ' missed' : '');
   });
-  if (status.finished) byClass('letter-key').forEach(key => { key.disabled = true; });
-  byId('hangman-message').className = 'hangman-message' + (status.won ? ' won' : status.lost ? ' lost' : '');
-  byId('hangman-title').textContent = status.won ? 'Bravo ' + state.profile.nickname + ' !' : status.lost ? 'Perdu ! Le mot était : ' + word : '';
-  byId('hangman-text').textContent = status.won ? 'Tu as trouvé ' + word + '.'
+  if (status.finished) Array.from(document.getElementsByClassName('letter-key')).forEach(key => { key.disabled = true; });
+  document.getElementById('hangman-message').className = 'hangman-message' + (status.won ? ' won' : status.lost ? ' lost' : '');
+  document.getElementById('hangman-title').textContent = status.won ? 'Bravo ' + state.profile.nickname + ' !' : status.lost ? 'Perdu ! Le mot était : ' + word : '';
+  document.getElementById('hangman-text').textContent = status.won ? 'Tu as trouvé ' + word + '.'
     : status.lost ? 'Clique sur Rejouer pour prendre ta revanche.'
     : 'Un indice : ' + word.length + ' lettres, une seule passion. Les lettres déjà proposées sont désactivées.';
-  byId('hangman-replay').className = 'button' + (status.finished ? '' : ' secondary');
+  document.getElementById('hangman-replay').className = 'button' + (status.finished ? '' : ' secondary');
 }
 
 /* ==========================================================================
@@ -614,9 +612,9 @@ let locationBusy = false;
 
 function showGeoMessage(message, type) {
   locationBusy = false;
-  byId('location-output').hidden = false;
-  byId('location-output').className = 'location-output ' + type;
-  byId('location-output').textContent = message;
+  document.getElementById('location-output').hidden = false;
+  document.getElementById('location-output').className = 'location-output ' + type;
+  document.getElementById('location-output').textContent = message;
   updateLocation();
   notify(message, type);
 }
@@ -625,9 +623,9 @@ function getLocation() {
   if (locationBusy) return;
   if (navigator.geolocation) {
     locationBusy = true;
-    byId('location-output').hidden = false;
-    byId('location-output').className = 'location-output';
-    byId('location-output').textContent = 'En attente de ton autorisation et de la position du navigateur...';
+    document.getElementById('location-output').hidden = false;
+    document.getElementById('location-output').className = 'location-output';
+    document.getElementById('location-output').textContent = 'En attente de ton autorisation et de la position du navigateur...';
     updateLocation();
     navigator.geolocation.getCurrentPosition(showPosition, showError, { maximumAge: 60000, timeout: 12000, enableHighAccuracy: false });
   } else {
@@ -667,16 +665,16 @@ function clearLocation() {
 
 function updateLocation() {
   const loc = state.settings.location;
-  byId('geo-button').disabled = locationBusy;
-  byId('geo-label').textContent = locationBusy ? 'LOCALISATION EN COURS...' : loc ? 'ACTUALISER MA POSITION' : 'AUTORISER MA LOCALISATION';
-  byId('geo-clear').hidden = !loc;
-  byId('geo-coords').hidden = !loc;
-  if (loc) byId('geo-coords').textContent = 'Latitude : ' + loc.latitude.toFixed(4) + ' · Longitude : ' + loc.longitude.toFixed(4);
+  document.getElementById('geo-button').disabled = locationBusy;
+  document.getElementById('geo-label').textContent = locationBusy ? 'LOCALISATION EN COURS...' : loc ? 'ACTUALISER MA POSITION' : 'AUTORISER MA LOCALISATION';
+  document.getElementById('geo-clear').hidden = !loc;
+  document.getElementById('geo-coords').hidden = !loc;
+  if (loc) document.getElementById('geo-coords').textContent = 'Latitude : ' + loc.latitude.toFixed(4) + ' · Longitude : ' + loc.longitude.toFixed(4);
 }
 
 // Liste des données du localStorage, parcourue avec length et key(i) comme dans le cours.
 function updateStoredData() {
-  const list = byId('stored-data');
+  const list = document.getElementById('stored-data');
   list.textContent = '';
   if (!storageSupported()) return;
   for (let i = 0; i < localStorage.length; i++) {
@@ -709,7 +707,7 @@ function clearAllData() {
 /* ==========================================================================
    12. MUSIQUE : balise <audio id="musique"> (fichier audio/road-to-glory.mp3)
    ========================================================================== */
-const musique = byId('musique');
+const musique = document.getElementById('musique');
 
 function toggleMusic() {
   if (musique.paused) {
@@ -725,26 +723,26 @@ function toggleMusic() {
 // Les événements play / pause de la balise mettent à jour les boutons.
 function updateMusicButtons() {
   const playing = !musique.paused;
-  setIcon(byId('header-music-icon'), playing ? 'volume' : 'volume-off');
-  byClass('js-audio-icon').forEach(use => setIcon(use, playing ? 'pause' : 'play'));
-  byId('equalizer').classList.toggle('is-playing', playing);
-  byId('audio-status').textContent = playing ? 'La bande-son de ton aventure' : 'Musique d’ambiance · Lecture manuelle';
+  document.getElementById('header-music-icon').setAttribute('href', '#i-' + (playing ? 'volume' : 'volume-off'));
+  Array.from(document.getElementsByClassName('js-audio-icon')).forEach(use => use.setAttribute('href', '#i-' + (playing ? 'pause' : 'play')));
+  document.getElementById('equalizer').classList.toggle('is-playing', playing);
+  document.getElementById('audio-status').textContent = playing ? 'La bande-son de ton aventure' : 'Musique d’ambiance · Lecture manuelle';
 }
-musique.addEventListener('play', () => { byId('football-video').pause(); updateMusicButtons(); });
+musique.addEventListener('play', () => { document.getElementById('football-video').pause(); updateMusicButtons(); });
 musique.addEventListener('pause', updateMusicButtons);
-byId('football-video').addEventListener('play', () => musique.pause());
+document.getElementById('football-video').addEventListener('play', () => musique.pause());
 
 /* ==========================================================================
    13. ÉCOUTEURS D'ÉVÉNEMENTS (addEventListener sur document)
    ========================================================================== */
-byId('register-form').addEventListener('submit', event => {
+document.getElementById('register-form').addEventListener('submit', event => {
   event.preventDefault();
   submitProfile(event.target);
 });
 
 document.addEventListener('click', event => {
   const target = event.target;
-  if (!byId('site-header').contains(target)) toggleMenu(false);
+  if (!document.getElementById('site-header').contains(target)) toggleMenu(false);
 
   const stadium = findData(target, 'stadium');
   if (stadium) { showStadium(stadium.dataset.stadium); return; }
@@ -768,11 +766,11 @@ document.addEventListener('click', event => {
     case 'music': toggleMusic(); break;
     case 'theme': setTheme(state.settings.theme === 'dark' ? 'light' : 'dark'); break;
     case 'set-theme': setTheme(button.dataset.themeChoice); break;
-    case 'menu': toggleMenu(!byId('primary-nav').classList.contains('open')); break;
+    case 'menu': toggleMenu(!document.getElementById('primary-nav').classList.contains('open')); break;
     case 'geolocation': getLocation(); break;
     case 'clear-location': clearLocation(); break;
     case 'clear-all': clearAllData(); break;
-    case 'dismiss-toast': byId('toast').classList.remove('visible'); break;
+    case 'dismiss-toast': document.getElementById('toast').classList.remove('visible'); break;
   }
 });
 
