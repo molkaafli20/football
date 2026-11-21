@@ -14,9 +14,11 @@ Les photos et la vidéo viennent de Pexels (liens en ligne) : une connexion inte
 ## Structure
 
 ```
-index.html   → la page unique (structure HTML5, icônes SVG et les 6 images du Drag & Drop)
+index.html   → tout le HTML : en-tête, les 7 pages (accueil, 3 missions, quiz, pendu, paramètres),
+               pied de page, icônes SVG et les 6 images du Drag & Drop
 style.css    → tout le style (thème sombre/clair, animations, responsive)
-script.js    → toute la logique, organisée en sections commentées
+script.js    → seulement les fonctionnalités : afficher la bonne page (hidden), mettre à jour
+               les textes (textContent), Drag & Drop, quiz, pendu, Web Storage, géolocalisation
 audio/       → road-to-glory.mp3, la musique d'ambiance (balise <audio>)
 ```
 
