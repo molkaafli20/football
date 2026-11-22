@@ -25,13 +25,17 @@ const MOTS = ['FOOTBALL', 'STADE', 'BALLON', 'GARDIEN', 'ARBITRE', 'BUT', 'JOUEU
    2. OUTILS
    ========================================================================== */
 // Petit message en bas de l'écran.
-let toastTimer = null;
-function notify(message, type = 'info') {
-  clearTimeout(toastTimer);
+let minuteur = null;
+
+function notify(message, type) {
+  const bulle = document.getElementById('toast');
   document.getElementById('toast-text').textContent = message;
-  document.getElementById('toast').className = 'toast visible' + (type === 'error' ? ' error' : '');
-  document.getElementById('toast-icon-use').setAttribute('href', '#i-' + (type === 'success' ? 'check-circle' : 'info'));
-  toastTimer = setTimeout(() => document.getElementById('toast').classList.remove('visible'), 6500);
+  bulle.classList.add('visible');
+  bulle.classList.toggle('error', type === 'error');   // rouge seulement pour une erreur
+  clearTimeout(minuteur);                               // annule l'ancien minuteur
+  minuteur = setTimeout(function () {
+    bulle.classList.remove('visible');
+  }, 5000);
 }
 
 /* ==========================================================================
