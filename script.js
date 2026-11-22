@@ -20,9 +20,6 @@ const TITRES = { home: 'Deviens une légende !', 'mission-0': 'Le rêve commence
 // Numéro de la bonne réponse (0 = A, 1 = B, 2 = C, 3 = D) pour chacune des 10 questions du quiz.
 const BONNES_REPONSES = [2, 3, 1, 2, 0, 3, 1, 2, 0, 3];
 const MOTS = ['FOOTBALL', 'STADE', 'BALLON', 'GARDIEN', 'ARBITRE', 'BUT', 'JOUEUR', 'MATCH', 'COUPE', 'PENALTY'];
-// Web Storage (cours) : chaque information a sa propre clé dans le localStorage.
-const LOCAL_KEYS = ['pseudo', 'nom', 'prenom', 'age', 'volume', 'mode', 'luminosite',
-  'latitude', 'longitude', 'precision', 'dernierResultatPendu', 'dernierScorePendu', 'dernierMotPendu', 'progression'];
 
 /* ==========================================================================
    2. OUTILS
@@ -39,6 +36,11 @@ function notify(message, type = 'info') {
 
 /* ==========================================================================
    3. ÉTAT DU JOUEUR ET WEB STORAGE
+   Chaque information a sa propre clé dans le localStorage (que des chaînes
+   simples, comme dans le cours) :
+   pseudo, nom, prenom, age, volume, mode, luminosite, latitude, longitude,
+   precision, dernierResultatPendu, dernierScorePendu, dernierMotPendu,
+   mission0Placees, mission0Terminee (idem 1 et 2), dernierScoreQuiz.
    ========================================================================== */
 function freshState() {
   return {
@@ -86,17 +88,15 @@ function readState() {
       errors: Number(localStorage.getItem('dernierScorePendu'))
     };
   }
-  // Missions et dernier score du quiz : une seule chaîne JSON (clé « progression »).
-  try {
-    const saved = JSON.parse(localStorage.getItem('progression'));
-    if (saved && Array.isArray(saved.missions)) {
-      saved.missions.slice(0, NB_MISSIONS).forEach((m, i) => {
-        s.missions[i].placed = Array.isArray(m.placed) ? m.placed : [];
-        s.missions[i].completed = m.completed === true;
-      });
-    }
-    if (saved && saved.quiz && Number.isInteger(saved.quiz.lastScore)) s.quiz.lastScore = saved.quiz.lastScore;
-  } catch (error) { /* progression illisible : on repart de zéro */ }
+  // Missions : les éléments placés sont séparés par des virgules (« drag-0-ball,drag-0-boots »).
+  for (let i = 0; i < NB_MISSIONS; i++) {
+    const placees = localStorage.getItem('mission' + i + 'Placees');
+    s.missions[i].placed = placees ? placees.split(',') : [];
+    s.missions[i].completed = localStorage.getItem('mission' + i + 'Terminee') === 'true';
+  }
+  // Dernier score du quiz.
+  const score = localStorage.getItem('dernierScoreQuiz');
+  if (score !== null && Number.isInteger(Number(score))) s.quiz.lastScore = Number(score);
   return s;
 }
 
@@ -128,7 +128,11 @@ function saveState() {
     localStorage.setItem('dernierScorePendu', last.errors);
     localStorage.setItem('dernierMotPendu', last.word);
   }
-  localStorage.setItem('progression', JSON.stringify({ missions: state.missions, quiz: state.quiz }));
+  state.missions.forEach((m, i) => {
+    localStorage.setItem('mission' + i + 'Placees', m.placed.join(','));
+    localStorage.setItem('mission' + i + 'Terminee', m.completed);
+  });
+  if (state.quiz.lastScore !== null) localStorage.setItem('dernierScoreQuiz', state.quiz.lastScore);
 }
 
 function persist() {
@@ -665,19 +669,18 @@ function updateLocation() {
   if (loc) document.getElementById('geo-coords').textContent = 'Latitude : ' + loc.latitude.toFixed(4) + ' · Longitude : ' + loc.longitude.toFixed(4);
 }
 
-// Liste des données du localStorage, parcourue avec length et key(i) comme dans le cours.
+// Liste des données du localStorage, parcourue avec length et key(i) comme dans le cours (slide 12).
 function updateStoredData() {
   const list = document.getElementById('stored-data');
   list.textContent = '';
   if (!storageSupported()) return;
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
-    if (!LOCAL_KEYS.includes(key)) continue;
     const li = document.createElement('li');
     const label = document.createElement('strong');
     label.textContent = key + ' : ';
     li.appendChild(label);
-    li.appendChild(document.createTextNode(key === 'progression' ? 'missions, dernier score du quiz' : localStorage.getItem(key)));
+    li.appendChild(document.createTextNode(localStorage.getItem(key)));
     list.appendChild(li);
   }
   if (!list.children.length) {
