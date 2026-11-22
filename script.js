@@ -152,11 +152,14 @@ function validateProfile(input) {
     age: Number(input.age)
   };
   const errors = {};
-  const namePattern = /^[\p{L}][\p{L}\p{M}' -]{0,39}$/u;
-  if (!namePattern.test(profile.firstName)) errors.firstName = 'Entre un prénom valide (40 caractères maximum).';
-  if (!namePattern.test(profile.lastName)) errors.lastName = 'Entre un nom valide (40 caractères maximum).';
-  if (!/^[\p{L}\p{N}_-]{3,20}$/u.test(profile.nickname)) errors.nickname = '3 à 20 lettres, chiffres, tirets ou underscores, sans espace.';
-  if (!Number.isInteger(profile.age) || profile.age < 5 || profile.age > 100 || String(input.age).trim() === '') errors.age = 'Entre un âge entier entre 5 et 100 ans.';
+  // Prénom et nom : 1 à 40 lettres (accents compris), apostrophes, espaces ou tirets.
+  const lettres = /^[a-zA-ZÀ-ÿ' -]{1,40}$/;
+  if (!lettres.test(profile.firstName)) errors.firstName = 'Entre un prénom valide (40 caractères maximum).';
+  if (!lettres.test(profile.lastName)) errors.lastName = 'Entre un nom valide (40 caractères maximum).';
+  // Pseudo : 3 à 20 lettres sans accent, chiffres, tirets ou underscores.
+  if (!/^[a-zA-Z0-9_-]{3,20}$/.test(profile.nickname)) errors.nickname = '3 à 20 lettres, chiffres, tirets ou underscores, sans espace.';
+  // Âge : nombre entier entre 5 et 100 (un champ vide donne 0, donc il est refusé).
+  if (!Number.isInteger(profile.age) || profile.age < 5 || profile.age > 100) errors.age = 'Entre un âge entier entre 5 et 100 ans.';
   return { profile, errors, valid: Object.keys(errors).length === 0 };
 }
 
