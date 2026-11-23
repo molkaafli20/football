@@ -186,10 +186,12 @@ function refreshAll() {
   if (PAGE === 'home') updateHome();
   if (PAGE === 'mission') updateMission(MISSION);
   if (PAGE === 'settings') updateSettings();
-  // Curseurs du volume (accueil et paramètres).
-  const volume = Math.round(state.settings.volume * 100);
-  Array.from(document.getElementsByClassName('js-volume-input')).forEach(input => { input.value = volume; });
-  Array.from(document.getElementsByClassName('js-volume-value')).forEach(span => { span.textContent = volume + ' %'; });
+  // Curseur du volume : il existe seulement sur l'accueil et les paramètres.
+  const curseur = document.getElementById('volume');
+  if (curseur) {
+    curseur.value = Math.round(state.settings.volume * 100);
+    document.getElementById('volume-value').textContent = curseur.value + ' %';
+  }
 }
 
 // En-tête (présent sur toutes les pages) : pseudo, initiales et icône du thème.
@@ -742,15 +744,16 @@ document.getElementById('header-theme').addEventListener('click', function () {
 Array.from(document.getElementsByClassName('btn-musique')).forEach(function (bouton) {
   bouton.addEventListener('click', toggleMusic);
 });
-// Curseurs du volume (accueil et paramètres) : événement « input » à chaque mouvement.
-Array.from(document.getElementsByClassName('js-volume-input')).forEach(function (curseur) {
-  curseur.addEventListener('input', function () {
-    state.settings.volume = Number(curseur.value) / 100;
+// Curseur du volume (accueil et paramètres) : événement « input » à chaque mouvement.
+const curseurVolume = document.getElementById('volume');
+if (curseurVolume) {
+  curseurVolume.addEventListener('input', function () {
+    state.settings.volume = Number(curseurVolume.value) / 100;
     applySettings();
     persist();
     refreshAll();
   });
-});
+}
 document.getElementById('toast-close').addEventListener('click', function () {
   document.getElementById('toast').classList.remove('visible');
 });
