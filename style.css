@@ -556,19 +556,19 @@ input[type="range"] { accent-color: var(--accent); height: 4px; background: tran
 
 /* ---------- 5. Valeurs fixes (auparavant données par le JavaScript) ---------- */
 /* Luminosité : une classe par palier de 5 % sur <html> */
-html.brightness-60 { --brightness: 0.6; }
-html.brightness-65 { --brightness: 0.65; }
-html.brightness-70 { --brightness: 0.7; }
-html.brightness-75 { --brightness: 0.75; }
-html.brightness-80 { --brightness: 0.8; }
-html.brightness-85 { --brightness: 0.85; }
-html.brightness-90 { --brightness: 0.9; }
-html.brightness-95 { --brightness: 0.95; }
-html.brightness-100 { --brightness: 1; }
-html.brightness-105 { --brightness: 1.05; }
-html.brightness-110 { --brightness: 1.1; }
-html.brightness-115 { --brightness: 1.15; }
-html.brightness-120 { --brightness: 1.2; }
+html[data-brightness="60"] { --brightness: 0.6; }
+html[data-brightness="65"] { --brightness: 0.65; }
+html[data-brightness="70"] { --brightness: 0.7; }
+html[data-brightness="75"] { --brightness: 0.75; }
+html[data-brightness="80"] { --brightness: 0.8; }
+html[data-brightness="85"] { --brightness: 0.85; }
+html[data-brightness="90"] { --brightness: 0.9; }
+html[data-brightness="95"] { --brightness: 0.95; }
+html[data-brightness="100"] { --brightness: 1; }
+html[data-brightness="105"] { --brightness: 1.05; }
+html[data-brightness="110"] { --brightness: 1.1; }
+html[data-brightness="115"] { --brightness: 1.15; }
+html[data-brightness="120"] { --brightness: 1.2; }
 /* Barres de progression : les pourcentages du site vont de 10 en 10 */
 .progress-track > span.pct-0 { width: 0%; }
 .progress-track > span.pct-10 { width: 10%; }

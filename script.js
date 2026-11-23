@@ -240,12 +240,9 @@ function updateSettings() {
 
 // Thème, luminosité et volume.
 function applySettings() {
-  const root = document.documentElement;
-  root.dataset.theme = state.settings.theme;
-  Array.from(root.classList).filter(name => name.startsWith('brightness-')).forEach(name => root.classList.remove(name));
-  root.classList.add('brightness-' + Math.round(state.settings.brightness / 5) * 5);
-  document.getElementById('meta-theme-color').setAttribute('content', state.settings.theme === 'dark' ? '#0b1217' : '#f1f5f0');
-  document.getElementById('musique').volume = state.settings.volume;
+  document.documentElement.dataset.theme = state.settings.theme;            // <html data-theme="light">
+  document.documentElement.dataset.brightness = state.settings.brightness;  // <html data-brightness="90">
+  document.getElementById('musique').volume = state.settings.volume;        // volume de <audio> (0 à 1)
 }
 
 /* ==========================================================================
