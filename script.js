@@ -2,9 +2,10 @@
 
 /* ==========================================================================
    FOOTBALL JOURNEY — script.js
-   Tout le HTML des pages est écrit dans index.html.
+   Le site a 7 fichiers HTML (index, mission1, mission2, mission3, quiz, pendu,
+   parametres) reliés par de simples liens <a href>. Ils utilisent tous ce fichier.
    Ce fichier gère seulement les fonctionnalités :
-   - afficher la bonne page (attribut hidden) et mettre à jour les textes (textContent) ;
+   - mettre à jour les textes de la page ouverte (textContent) ;
    - Drag & Drop, quiz, pendu, carte des stades, musique ;
    - Web Storage (localStorage / sessionStorage) et géolocalisation.
    Sélection : document.getElementById et document.getElementsByClassName (sans raccourci).
@@ -15,7 +16,11 @@
    1. DONNÉES DU JEU
    ========================================================================== */
 const NB_MISSIONS = 3;
-const PAGES = ['home', 'mission-0', 'mission-1', 'mission-2', 'quiz', 'hangman', 'settings'];
+// Page ouverte : écrite dans <body data-page="..."> de chaque fichier HTML
+// (home, mission, quiz, hangman ou settings).
+const PAGE = document.body.dataset.page;
+// Pour mission1.html, mission2.html et mission3.html : numéro de la mission (0, 1 ou 2).
+const MISSION = Number(document.body.dataset.mission);
 // Numéro de la bonne réponse (0 = A, 1 = B, 2 = C, 3 = D) pour chacune des 10 questions du quiz.
 const BONNES_REPONSES = [2, 3, 1, 2, 0, 3, 1, 2, 0, 3];
 const MOTS = ['FOOTBALL', 'STADE', 'BALLON', 'GARDIEN', 'ARBITRE', 'BUT', 'JOUEUR', 'MATCH', 'COUPE', 'PENALTY'];
@@ -140,7 +145,7 @@ function saveState() {
 
 function persist() {
   if (storageSupported()) saveState();
-  updateStoredData();
+  if (PAGE === 'settings') updateStoredData();
 }
 
 function validateProfile(input) {
@@ -173,35 +178,33 @@ function canAccessMission(id) {
 }
 
 /* ==========================================================================
-   4. AFFICHAGE : montrer une page et mettre à jour les textes
+   4. AFFICHAGE : mettre à jour les textes de la page ouverte
    ========================================================================== */
-// Montre une seule page de <main> et cache les autres (attribut hidden).
-function showPage(name) {
-  // 1. Afficher la page demandée et cacher les autres.
-  PAGES.forEach(function (page) {
-    document.getElementById('page-' + page).hidden = (page !== name);
-  });
-  // 2. Allumer le bon bouton du menu (les pages de mission font partie de l'accueil).
-  let menu = name;
-  if (name.startsWith('mission')) menu = 'home';
-  Array.from(document.getElementsByClassName('nav-button')).forEach(function (button) {
-    button.classList.toggle('active', button.dataset.route === menu);
-  });
-  // 3. Revenir en haut de la page.
-  window.scrollTo(0, 0);
+// Appelée au chargement et après chaque changement.
+function refreshAll() {
+  updateHeader();
+  if (PAGE === 'home') updateHome();
+  if (PAGE === 'mission') updateMission(MISSION);
+  if (PAGE === 'settings') updateSettings();
+  // Curseurs du volume (accueil et paramètres).
+  const volume = Math.round(state.settings.volume * 100);
+  Array.from(document.getElementsByClassName('js-volume-input')).forEach(input => { input.value = volume; });
+  Array.from(document.getElementsByClassName('js-volume-value')).forEach(span => { span.textContent = volume + ' %'; });
 }
 
-// Met à jour tout ce qui dépend du joueur (appelée après chaque changement).
-function refreshAll() {
+// En-tête (présent sur toutes les pages) : pseudo, initiales et icône du thème.
+function updateHeader() {
   const p = state.profile;
-  // En-tête
   document.getElementById('header-pseudo').textContent = p ? p.nickname : 'Mon joueur';
   document.getElementById('avatar-initials').textContent = p ? (p.firstName[0] + p.lastName[0]).toUpperCase() : '';
   document.getElementById('avatar-initials').hidden = !p;
   document.getElementById('avatar-icon').toggleAttribute('hidden', Boolean(p));
   document.getElementById('header-theme-icon').setAttribute('href', '#i-' + (state.settings.theme === 'dark' ? 'sun' : 'moon'));
+}
 
-  // Accueil : inscription OU carte du joueur
+// Accueil (index.html) : inscription OU carte du joueur, et état des 3 missions.
+function updateHome() {
+  const p = state.profile;
   document.getElementById('hero-eyebrow').textContent = p ? 'BIENVENUE SUR LE TERRAIN, ' + p.nickname : 'LE COUP D’ENVOI DE TON HISTOIRE';
   document.getElementById('registration').hidden = Boolean(p);
   document.getElementById('player-home').hidden = !p;
@@ -213,7 +216,6 @@ function refreshAll() {
     document.getElementById('player-percent').textContent = percent;
     document.getElementById('player-bar').className = 'pct-' + Math.round(percent / 10) * 10;
   }
-
   // Cartes des missions : verrouillée, ouverte ou terminée
   for (let i = 0; i < NB_MISSIONS; i++) {
     const done = state.missions[i].completed;
@@ -222,24 +224,21 @@ function refreshAll() {
     document.getElementById('carte-mission-' + i + '-icone').setAttribute('href', '#i-' + (done ? 'check' : open ? 'play' : 'lock'));
     document.getElementById('carte-mission-' + i + '-fleche').setAttribute('href', '#i-' + (done ? 'check' : open ? 'arrow' : 'lock'));
     document.getElementById('carte-mission-' + i + '-texte').textContent = done ? 'Mission accomplie' : open ? 'Le coup d’envoi t’attend' : 'Chaque chose en son temps';
-    updateMission(i);
   }
+}
 
-  // Paramètres
-  if (p) {
-    document.getElementById('info-firstName').textContent = p.firstName;
-    document.getElementById('info-lastName').textContent = p.lastName;
-    document.getElementById('info-nickname').textContent = p.nickname;
-    document.getElementById('info-age').textContent = p.age;
-  }
+// Paramètres (parametres.html).
+function updateSettings() {
+  const p = state.profile;
+  document.getElementById('info-firstName').textContent = p.firstName;
+  document.getElementById('info-lastName').textContent = p.lastName;
+  document.getElementById('info-nickname').textContent = p.nickname;
+  document.getElementById('info-age').textContent = p.age;
   updateLocation();
   document.getElementById('theme-dark').classList.toggle('active', state.settings.theme === 'dark');
   document.getElementById('theme-light').classList.toggle('active', state.settings.theme === 'light');
   document.getElementById('brightness-range').value = state.settings.brightness;
   document.getElementById('brightness-value').textContent = state.settings.brightness + ' %';
-  const volume = Math.round(state.settings.volume * 100);
-  Array.from(document.getElementsByClassName('js-volume-input')).forEach(input => { input.value = volume; });
-  Array.from(document.getElementsByClassName('js-volume-value')).forEach(span => { span.textContent = volume + ' %'; });
   updateStoredData();
 }
 
@@ -254,39 +253,41 @@ function applySettings() {
 }
 
 /* ==========================================================================
-   5. NAVIGATION ENTRE LES PAGES (sans rechargement)
+   5. ACCÈS AUX PAGES
+   On change de page avec de simples liens <a href="quiz.html">.
+   Le JS vérifie seulement que le joueur a le droit d'ouvrir la page.
    ========================================================================== */
-// Sans joueur, on ramène au formulaire d'inscription.
-function requestProfile() {
-  if (state.profile) return true;
-  showPage('home');
+// Au chargement d'une page autre que l'accueil : il faut un joueur inscrit,
+// et une mission doit être débloquée. Sinon, retour à l'accueil.
+function checkAccess() {
+  if (PAGE === 'home') return true;
+  if (!state.profile) {
+    location.replace('index.html#registration');   // directement sur le formulaire
+    return false;
+  }
+  if (PAGE === 'mission' && !canAccessMission(MISSION)) {
+    location.replace('index.html');
+    return false;
+  }
+  return true;
+}
+
+// Accueil sans joueur : on descend jusqu'au formulaire d'inscription.
+function askRegistration() {
   document.getElementById('registration').scrollIntoView({ block: 'center' });
   document.getElementById('register-firstName').focus({ preventScroll: true });
   notify('Premier coup de sifflet : crée ton joueur pour commencer ton aventure.');
-  return false;
-}
-
-function navigate(page, missionId = 0) {
-  toggleMenu(false);
-  if (page !== 'home' && !requestProfile()) return;
-  if (page === 'mission') {
-    if (!canAccessMission(missionId)) {
-      notify('Cette mission est encore verrouillée. Termine d’abord la mission précédente.', 'error');
-      return;
-    }
-    page = 'mission-' + missionId;
-  }
-  if (page === 'quiz') openQuiz();
-  document.getElementById('football-video').pause();
-  showPage(page);
 }
 
 // « Commencer mon voyage » : première mission pas encore terminée, sinon le quiz.
 function startJourney() {
-  if (!requestProfile()) return;
+  if (!state.profile) {
+    askRegistration();
+    return;
+  }
   const next = state.missions.findIndex(m => !m.completed);
-  if (next === -1) navigate('quiz');
-  else navigate('mission', next);
+  if (next === -1) location.href = 'quiz.html';
+  else location.href = 'mission' + (next + 1) + '.html';
 }
 
 function toggleMenu(open) {
@@ -314,14 +315,14 @@ function submitProfile(form) {
   state.profile = checked.profile;
   persist();
   refreshAll();
-  showPage('home');
+  window.scrollTo(0, 0);
   notify('Bienvenue ' + state.profile.nickname + ' ! Ton maillot est prêt.', 'success');
 }
 
 /* ==========================================================================
    7. CARTE INTERACTIVE DES STADES
    ========================================================================== */
-// Clic sur un point : on l'allume et on affiche la fiche du stade (les fiches sont dans index.html).
+// Clic sur un point : on l'allume et on affiche la fiche du stade (les fiches sont écrites dans index.html).
 function showStadium(id) {
   Array.from(document.getElementsByClassName('map-marker')).forEach(marker => marker.classList.toggle('active', marker.dataset.stadium === id));
   Array.from(document.getElementsByClassName('map-fiche')).forEach(fiche => { fiche.hidden = fiche.id !== 'fiche-' + id; });
@@ -443,24 +444,13 @@ function finishMission(mission) {
   refreshAll();
 }
 
-function goToNextMission(mission) {
-  if (mission === NB_MISSIONS - 1) navigate('quiz');
-  else navigate('mission', mission + 1);
-}
-
-// Au chargement : on remet dans leur zone les éléments déjà bien placés (sauvegarde).
-function restoreMissions() {
-  state.missions.forEach((m, mission) => {
-    m.placed = m.placed.filter(id => {
-      const item = document.getElementById(id);
-      if (!item || item.dataset.mission !== String(mission) || !canAccessMission(mission)) return false;
-      placeItem(item);
-      return true;
-    });
-    const total = Array.from(document.getElementById('page-mission-' + mission).getElementsByClassName('drag-item')).length;
-    m.completed = m.completed && m.placed.length === total;
-    if (m.completed) setFeedback(mission, 'success', 'Mission accomplie ! Ta progression est enregistrée.');
+// Au chargement d'une page de mission : on remet dans leur zone les éléments déjà bien placés.
+function restoreMission(mission) {
+  state.missions[mission].placed.forEach(id => {
+    const item = document.getElementById(id);
+    if (item) placeItem(item);
   });
+  if (state.missions[mission].completed) setFeedback(mission, 'success', 'Mission accomplie ! Ta progression est enregistrée.');
 }
 
 /* ==========================================================================
@@ -468,17 +458,14 @@ function restoreMissions() {
    ========================================================================== */
 let quizIndex = 0;
 let quizAnswers = [];
-let quizRunning = false;
 
 // À l'ouverture : le résultat s'il existe déjà, sinon la première question.
 function openQuiz() {
-  if (quizRunning) return;
   if (state.quiz.lastScore !== null) showQuizResult();
   else startQuiz();
 }
 
 function startQuiz() {
-  quizRunning = true;
   quizIndex = 0;
   quizAnswers = [];
   Array.from(document.getElementsByClassName('quiz-option')).forEach(button => button.classList.remove('selected'));
@@ -519,7 +506,6 @@ function advanceQuiz() {
     sessionStorage.setItem('pseudoQuiz', state.profile.nickname);
   }
   persist();
-  quizRunning = false;
   showQuizResult();
   window.scrollTo(0, 0);
 }
@@ -697,14 +683,14 @@ function updateStoredData() {
   }
 }
 
-// Supprime tout avec localStorage.clear() et sessionStorage.clear(), puis recharge la page.
+// Supprime tout avec localStorage.clear() et sessionStorage.clear(), puis retour à l'accueil.
 function clearAllData() {
   if (!confirm('Supprimer ton joueur, ta progression et tes réglages de cet appareil ?')) return;
   if (storageSupported()) {
     localStorage.clear();
     sessionStorage.clear();
   }
-  location.reload();
+  location.href = 'index.html';
 }
 
 /* ==========================================================================
@@ -728,20 +714,22 @@ function updateMusicButtons() {
   const playing = !musique.paused;
   document.getElementById('header-music-icon').setAttribute('href', '#i-' + (playing ? 'volume' : 'volume-off'));
   Array.from(document.getElementsByClassName('js-audio-icon')).forEach(use => use.setAttribute('href', '#i-' + (playing ? 'pause' : 'play')));
-  document.getElementById('equalizer').classList.toggle('is-playing', playing);
-  document.getElementById('audio-status').textContent = playing ? 'La bande-son de ton aventure' : 'Musique d’ambiance · Lecture manuelle';
+  if (PAGE === 'home') {
+    document.getElementById('equalizer').classList.toggle('is-playing', playing);
+    document.getElementById('audio-status').textContent = playing ? 'La bande-son de ton aventure' : 'Musique d’ambiance · Lecture manuelle';
+  }
 }
-musique.addEventListener('play', () => { document.getElementById('football-video').pause(); updateMusicButtons(); });
+musique.addEventListener('play', updateMusicButtons);
 musique.addEventListener('pause', updateMusicButtons);
-document.getElementById('football-video').addEventListener('play', () => musique.pause());
 
 /* ==========================================================================
    13. ÉCOUTEURS D'ÉVÉNEMENTS
    Méthode du cours : element.addEventListener('click', function () { ... });
-   Chaque bouton de index.html reçoit ici son propre écouteur.
+   Les liens <a href> du menu n'ont besoin d'aucun écouteur.
+   Chaque page n'ajoute que les écouteurs de ses propres boutons.
    ========================================================================== */
 
-// ---------- En-tête ----------
+// ---------- Toutes les pages : en-tête, musique, message ----------
 document.getElementById('menu-button').addEventListener('click', function () {
   const ouvert = document.getElementById('primary-nav').classList.contains('open');
   toggleMenu(!ouvert);
@@ -750,76 +738,10 @@ document.getElementById('header-theme').addEventListener('click', function () {
   if (state.settings.theme === 'dark') setTheme('light');
   else setTheme('dark');
 });
-document.getElementById('profile-button').addEventListener('click', function () {
-  navigate('settings');
-});
-
-// ---------- Liens vers les pages (menu, logo, « Retour à l’accueil »...) ----------
-// Chaque lien a la classe « lien-page » et le nom de la page dans data-route.
-Array.from(document.getElementsByClassName('lien-page')).forEach(function (lien) {
-  lien.addEventListener('click', function () {
-    navigate(lien.dataset.route);
-  });
-});
-
-// ---------- Accueil ----------
-// Deux boutons : « Commencer mon voyage » et « Continuer ».
-Array.from(document.getElementsByClassName('btn-commencer')).forEach(function (bouton) {
-  bouton.addEventListener('click', startJourney);
-});
-
-// Les 3 cartes de mission.
-for (let i = 0; i < NB_MISSIONS; i++) {
-  document.getElementById('carte-mission-' + i).addEventListener('click', function () {
-    navigate('mission', i);
-  });
-}
-
-// Les 8 points de la carte des stades.
-Array.from(document.getElementsByClassName('map-marker')).forEach(function (point) {
-  point.addEventListener('click', function () {
-    showStadium(point.dataset.stadium);
-  });
-});
-
-// Formulaire d'inscription.
-document.getElementById('register-form').addEventListener('submit', function (event) {
-  event.preventDefault(); // empêche le rechargement de la page
-  submitProfile(event.target);
-});
-
-// ---------- Missions : boutons « Terminer » et « Mission suivante » ----------
-for (let i = 0; i < NB_MISSIONS; i++) {
-  document.getElementById('terminer-' + i).addEventListener('click', function () {
-    finishMission(i);
-  });
-  document.getElementById('suivant-' + i).addEventListener('click', function () {
-    goToNextMission(i);
-  });
-}
-
-// ---------- Quiz ----------
-Array.from(document.getElementsByClassName('quiz-option')).forEach(function (reponse) {
-  reponse.addEventListener('click', function () {
-    chooseQuizAnswer(reponse);
-  });
-});
-document.getElementById('quiz-next').addEventListener('click', advanceQuiz);
-document.getElementById('quiz-retry').addEventListener('click', startQuiz);
-
-// ---------- Pendu ----------
-Array.from(document.getElementsByClassName('letter-key')).forEach(function (touche) {
-  touche.addEventListener('click', function () {
-    guessLetter(touche);
-  });
-});
-document.getElementById('hangman-replay').addEventListener('click', newHangmanGame);
-
-// ---------- Musique (3 boutons : en-tête, accueil, paramètres) ----------
+// Boutons de la musique (en-tête, accueil, paramètres).
 Array.from(document.getElementsByClassName('btn-musique')).forEach(function (bouton) {
   bouton.addEventListener('click', toggleMusic);
 });
-
 // Curseurs du volume (accueil et paramètres) : événement « input » à chaque mouvement.
 Array.from(document.getElementsByClassName('js-volume-input')).forEach(function (curseur) {
   curseur.addEventListener('input', function () {
@@ -829,40 +751,113 @@ Array.from(document.getElementsByClassName('js-volume-input')).forEach(function 
     refreshAll();
   });
 });
-
-// ---------- Paramètres ----------
-document.getElementById('geo-button').addEventListener('click', getLocation);
-document.getElementById('geo-clear').addEventListener('click', clearLocation);
-document.getElementById('theme-dark').addEventListener('click', function () {
-  setTheme('dark');
-});
-document.getElementById('theme-light').addEventListener('click', function () {
-  setTheme('light');
-});
-document.getElementById('brightness-range').addEventListener('input', function () {
-  state.settings.brightness = Number(document.getElementById('brightness-range').value);
-  applySettings();
-  persist();
-  refreshAll();
-});
-document.getElementById('clear-all').addEventListener('click', clearAllData);
-
-// ---------- Message en bas de l'écran ----------
 document.getElementById('toast-close').addEventListener('click', function () {
   document.getElementById('toast').classList.remove('visible');
 });
-
 // Événement storage (cours) : un AUTRE onglet du site a modifié le localStorage.
 window.addEventListener('storage', event => {
   if (event.storageArea === localStorage) location.reload();
 });
 
+// ---------- Accueil (index.html) ----------
+if (PAGE === 'home') {
+  // Deux boutons : « Commencer mon voyage » et « Continuer ».
+  Array.from(document.getElementsByClassName('btn-commencer')).forEach(function (bouton) {
+    bouton.addEventListener('click', startJourney);
+  });
+  // Les 3 cartes de mission sont des liens : on bloque seulement une mission verrouillée.
+  for (let i = 0; i < NB_MISSIONS; i++) {
+    document.getElementById('carte-mission-' + i).addEventListener('click', function (event) {
+      if (!state.profile) {
+        event.preventDefault();   // le lien n'est pas suivi
+        askRegistration();
+      } else if (!canAccessMission(i)) {
+        event.preventDefault();
+        notify('Cette mission est encore verrouillée. Termine d’abord la mission précédente.', 'error');
+      }
+    });
+  }
+  // Les 8 points de la carte des stades.
+  Array.from(document.getElementsByClassName('map-marker')).forEach(function (point) {
+    point.addEventListener('click', function () {
+      showStadium(point.dataset.stadium);
+    });
+  });
+  // Formulaire d'inscription.
+  document.getElementById('register-form').addEventListener('submit', function (event) {
+    event.preventDefault(); // empêche le rechargement de la page
+    submitProfile(event.target);
+  });
+  // La vidéo et la musique ne jouent pas en même temps.
+  document.getElementById('football-video').addEventListener('play', function () {
+    musique.pause();
+  });
+  musique.addEventListener('play', function () {
+    document.getElementById('football-video').pause();
+  });
+}
+
+// ---------- Missions (mission1.html, mission2.html, mission3.html) ----------
+if (PAGE === 'mission') {
+  document.getElementById('terminer-' + MISSION).addEventListener('click', function () {
+    finishMission(MISSION);
+  });
+}
+
+// ---------- Quiz (quiz.html) ----------
+if (PAGE === 'quiz') {
+  Array.from(document.getElementsByClassName('quiz-option')).forEach(function (reponse) {
+    reponse.addEventListener('click', function () {
+      chooseQuizAnswer(reponse);
+    });
+  });
+  document.getElementById('quiz-next').addEventListener('click', advanceQuiz);
+  document.getElementById('quiz-retry').addEventListener('click', startQuiz);
+}
+
+// ---------- Pendu (pendu.html) ----------
+if (PAGE === 'hangman') {
+  Array.from(document.getElementsByClassName('letter-key')).forEach(function (touche) {
+    touche.addEventListener('click', function () {
+      guessLetter(touche);
+    });
+  });
+  document.getElementById('hangman-replay').addEventListener('click', newHangmanGame);
+}
+
+// ---------- Paramètres (parametres.html) ----------
+if (PAGE === 'settings') {
+  document.getElementById('geo-button').addEventListener('click', getLocation);
+  document.getElementById('geo-clear').addEventListener('click', clearLocation);
+  document.getElementById('theme-dark').addEventListener('click', function () {
+    setTheme('dark');
+  });
+  document.getElementById('theme-light').addEventListener('click', function () {
+    setTheme('light');
+  });
+  document.getElementById('brightness-range').addEventListener('input', function () {
+    state.settings.brightness = Number(document.getElementById('brightness-range').value);
+    applySettings();
+    persist();
+    refreshAll();
+  });
+  document.getElementById('clear-all').addEventListener('click', clearAllData);
+}
+
 /* ==========================================================================
-   14. DÉMARRAGE DU SITE
+   14. DÉMARRAGE DE LA PAGE
    ========================================================================== */
 applySettings();
-restoreMissions();
-activerDragAndDrop();
-newHangmanGame();
-refreshAll();
-showPage('home');
+if (checkAccess()) {
+  if (PAGE === 'mission') {
+    restoreMission(MISSION);
+    activerDragAndDrop();
+  }
+  if (PAGE === 'quiz') openQuiz();
+  if (PAGE === 'hangman') newHangmanGame();
+  // Arrivée sur l'accueil depuis une page protégée (index.html#registration) sans joueur.
+  if (PAGE === 'home' && !state.profile && location.hash === '#registration') {
+    notify('Premier coup de sifflet : crée ton joueur pour commencer ton aventure.');
+  }
+  refreshAll();
+}

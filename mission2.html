@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" id="meta-theme-color" content="#0b1217">
+  <meta name="description" content="Du premier ballon aux plus grands stades. Construis ta carrière, relève trois missions et deviens une légende du football.">
+  <title>FOOTBALL JOURNEY - Mission 2 : L’école de football</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b1217'/%3E%3Cg fill='none' stroke='%23bef65b' stroke-width='3'%3E%3Ccircle cx='32' cy='32' r='22'/%3E%3Cpath d='m32 20 11 8-4 13H25l-4-13ZM32 20V10M43 28l10-4M39 41l7 9M25 41l-7 9M21 28l-10-4'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="mission" data-mission="1">
+  <a class="skip-link" href="#main-content">Aller au contenu</a>
+
+  <!-- Icônes SVG réutilisées partout avec <use href="#i-..."> -->
+  <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-crest" viewBox="0 0 36 42"><path d="M18 2 33 8v12c0 9-8 16-15 20C11 36 3 29 3 20V8Z"/><path d="M12 13h15M12 13v17M12 20h11M8 8h20M18 8v5M25 25l-6 5 4 1"/></symbol>
+    <symbol id="i-ball" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="m12 7 4.8 3.5-1.9 5.5H9.1l-1.9-5.5ZM12 7V2.5M16.8 10.5l4.2-1.7M14.9 16l2.8 3.7M9.1 16l-2.8 3.7M7.2 10.5 3 8.8"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1Z"/></symbol>
+    <symbol id="i-route" viewBox="0 0 24 24"><circle cx="5" cy="5" r="2"/><circle cx="19" cy="19" r="2"/><path d="M7 5h9a4 4 0 0 1 0 8H8a3 3 0 0 0 0 6h9"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 3h10v7a5 5 0 0 1-10 0ZM7 5H3v3a4 4 0 0 0 4 4M17 5h4v3a4 4 0 0 1-4 4M12 15v5M8 21h8"/></symbol>
+    <symbol id="i-pendu" viewBox="0 0 24 24"><path d="M3 21h10M6 21V3h11v3M6 7l4-4M17 12v6M14 15l3-2 3 2M17 18l-3 3M17 18l3 3"/><circle cx="17" cy="9" r="3"/></symbol>
+    <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 3v18h17M8 16v-5M13 16V6M18 16V9"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="m9 3-.6 2.2-2 .9-2.1-.5-2 3.4 1.6 1.6v2.8L2.3 15l2 3.4 2.1-.5 2 .9L9 21h4l.6-2.2 2-.9 2.1.5 2-3.4-1.6-1.6v-2.8L19.7 9l-2-3.4-2.1.5-2-.9L13 3Z"/><circle cx="11" cy="12" r="3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m9 5 11 7-11 7Z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8 5v14M16 5v14" stroke-width="3"/></symbol>
+    <symbol id="i-volume" viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5ZM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-volume-off" viewBox="0 0 24 24"><path d="m11 4-6 5H2v6h3l6 5ZM16 9l6 6M22 9l-6 6"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14A9 9 0 0 1 10 3a9.2 9.2 0 1 0 10.5 11Z"/></symbol>
+    <symbol id="i-boot" viewBox="0 0 24 24"><path d="m5 4 6-1 1 8 7 3a4 4 0 0 1 2 4H3V9ZM3 18v3M8 18v3M15 18v3M20 18v3M12 8l-3 1M13 11l-3 1"/></symbol>
+    <symbol id="i-shirt" viewBox="0 0 24 24"><path d="m8 3-6 4 3 5 3-2v11h8V10l3 2 3-5-6-4a4 4 0 0 1-8 0Z"/><path d="M10 8h4"/></symbol>
+    <symbol id="i-whistle" viewBox="0 0 24 24"><path d="M4 9h6l4-4h7v5h-5v5a6 6 0 1 1-12-6Z"/><circle cx="8" cy="15" r="2"/><path d="M18 2v1M23 5h-1"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v5l3 2M9 2h6M12 2v3M18 6l2-2"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 2 9 4v6c0 5-6 9-9 10-3-1-9-5-9-10V6Z"/><path d="m8 12 3 3 5-6"/></symbol>
+    <symbol id="i-glove" viewBox="0 0 24 24"><path d="M7 21V11L4 8a1.5 1.5 0 0 1 2-2l2 2V4a1 1 0 0 1 2 0v5-7a1 1 0 0 1 2 0v7-6a1 1 0 0 1 2 0v6-5a1 1 0 0 1 2 0v6l2-3a1.5 1.5 0 0 1 2 2l-3 6v6Z"/></symbol>
+    <symbol id="i-midfield" viewBox="0 0 24 24"><path d="M3 6h18M3 18h18M7 3 3 6l4 3M17 15l4 3-4 3M12 8v8"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-goal" viewBox="0 0 24 24"><path d="M3 20V5h18v15M3 10h18M3 15h18M8 5v15M16 5v15M3 5l5-3h13v3"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M5 2h9l5 5v15H5ZM14 2v6h5M8 12h8M8 16h6M8 19h4"/></symbol>
+    <symbol id="i-training" viewBox="0 0 24 24"><path d="M5 5v14M2 8v8M19 5v14M22 8v8M5 12h14"/></symbol>
+    <symbol id="i-exchange" viewBox="0 0 24 24"><path d="M3 7h17m-5-5 5 5-5 5M21 17H4m5-5-5 5 5 5"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="m12 2 3 6 7 .9-5 5 1.2 7.1-6.2-3.3L5.8 21 7 13.9l-5-5L9 8Z"/></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 22V3c6-4 10 4 16 0v11c-6 4-10-4-16 0"/></symbol>
+    <symbol id="i-location" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.1"/></symbol>
+    <symbol id="i-grip" viewBox="0 0 24 24"><path d="M8 5h.1M16 5h.1M8 12h.1M16 12h.1M8 19h.1M16 19h.1" stroke-width="3"/></symbol>
+    <symbol id="i-replay" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 1 7M3 4v6h6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+    <!-- Images des 6 objets du Drag & Drop (mission 2) -->
+    <symbol id="obj-maillot" viewBox="0 0 240 240"><path d="M70 30 L105 30 Q120 52 135 30 L170 30 L222 82 L190 116 L170 98 L170 215 L70 215 L70 98 L50 116 L18 82 Z" fill="#bef65b" stroke="#172512" stroke-width="7" stroke-linejoin="round"/><path d="M105 30 Q120 52 135 30" fill="none" stroke="#172512" stroke-width="7"/><text x="120" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-weight="800" font-size="72" fill="#172512">10</text></symbol>
+    <symbol id="obj-crampons" viewBox="0 0 240 240"><path d="M40 70 Q45 52 70 55 L120 62 Q132 95 150 112 L200 130 Q222 140 220 165 L218 172 L28 172 Q22 120 40 70 Z" fill="#2a3d43" stroke="#0b1217" stroke-width="7" stroke-linejoin="round"/><path d="M70 58 L76 108 M95 60 L103 112 M118 64 L128 116" stroke="#e8f3ea" stroke-width="6" stroke-linecap="round"/><path d="M150 112 Q170 140 215 150" fill="none" stroke="#bef65b" stroke-width="10" stroke-linecap="round"/><rect x="26" y="168" width="196" height="16" rx="8" fill="#0b1217"/><rect x="40" y="182" width="14" height="22" rx="4" fill="#bef65b" stroke="#0b1217" stroke-width="4"/><rect x="78" y="182" width="14" height="22" rx="4" fill="#bef65b" stroke="#0b1217" stroke-width="4"/><rect x="150" y="182" width="14" height="22" rx="4" fill="#bef65b" stroke="#0b1217" stroke-width="4"/><rect x="192" y="182" width="14" height="22" rx="4" fill="#bef65b" stroke="#0b1217" stroke-width="4"/></symbol>
+    <symbol id="obj-protege-tibias" viewBox="0 0 240 240"><g transform="translate(30 50) rotate(-8)"><path d="M0 0 Q40 -10 80 0 L80 120 Q40 160 0 120 Z" fill="#3b82f6" stroke="#0b1217" stroke-width="7" stroke-linejoin="round"/><path d="M14 22 Q40 14 66 22 L66 108 Q40 136 14 108 Z" fill="#e8f3ea"/><path d="M40 40 L40 110" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/></g><g transform="translate(125 45) rotate(8)"><path d="M0 0 Q40 -10 80 0 L80 120 Q40 160 0 120 Z" fill="#3b82f6" stroke="#0b1217" stroke-width="7" stroke-linejoin="round"/><path d="M14 22 Q40 14 66 22 L66 108 Q40 136 14 108 Z" fill="#e8f3ea"/><path d="M40 40 L40 110" stroke="#3b82f6" stroke-width="8" stroke-linecap="round"/></g></symbol>
+    <symbol id="obj-sifflet" viewBox="0 0 240 240"><path d="M120 60 Q60 30 30 80" fill="none" stroke="#f4c66a" stroke-width="7" stroke-linecap="round" stroke-dasharray="1 12"/><circle cx="110" cy="140" r="58" fill="#c9d3d8" stroke="#0b1217" stroke-width="7"/><path d="M130 92 L215 92 L215 140 L160 140 Z" fill="#c9d3d8" stroke="#0b1217" stroke-width="7" stroke-linejoin="round"/><circle cx="110" cy="140" r="22" fill="#0b1217"/><circle cx="102" cy="132" r="6" fill="#e8f3ea"/><rect x="168" y="100" width="34" height="12" rx="4" fill="#0b1217"/><circle cx="125" cy="76" r="10" fill="none" stroke="#0b1217" stroke-width="6"/></symbol>
+    <symbol id="obj-chronometre" viewBox="0 0 240 240"><rect x="104" y="18" width="32" height="26" rx="6" fill="#2a3d43" stroke="#0b1217" stroke-width="6"/><path d="M170 52 L186 38" stroke="#0b1217" stroke-width="10" stroke-linecap="round"/><circle cx="120" cy="134" r="86" fill="#e8f3ea" stroke="#0b1217" stroke-width="9"/><circle cx="120" cy="134" r="70" fill="none" stroke="#bef65b" stroke-width="10" stroke-dasharray="330 440" transform="rotate(-90 120 134)"/><line x1="178.0" y1="134.0" x2="186.0" y2="134.0" stroke="#0b1217" stroke-width="5"/><line x1="170.2" y1="163.0" x2="177.2" y2="167.0" stroke="#0b1217" stroke-width="5"/><line x1="149.0" y1="184.2" x2="153.0" y2="191.2" stroke="#0b1217" stroke-width="5"/><line x1="120.0" y1="192.0" x2="120.0" y2="200.0" stroke="#0b1217" stroke-width="5"/><line x1="91.0" y1="184.2" x2="87.0" y2="191.2" stroke="#0b1217" stroke-width="5"/><line x1="69.8" y1="163.0" x2="62.8" y2="167.0" stroke="#0b1217" stroke-width="5"/><line x1="62.0" y1="134.0" x2="54.0" y2="134.0" stroke="#0b1217" stroke-width="5"/><line x1="69.8" y1="105.0" x2="62.8" y2="101.0" stroke="#0b1217" stroke-width="5"/><line x1="91.0" y1="83.8" x2="87.0" y2="76.8" stroke="#0b1217" stroke-width="5"/><line x1="120.0" y1="76.0" x2="120.0" y2="68.0" stroke="#0b1217" stroke-width="5"/><line x1="149.0" y1="83.8" x2="153.0" y2="76.8" stroke="#0b1217" stroke-width="5"/><line x1="170.2" y1="105.0" x2="177.2" y2="101.0" stroke="#0b1217" stroke-width="5"/><line x1="120" y1="134" x2="120" y2="84" stroke="#0b1217" stroke-width="8" stroke-linecap="round"/><line x1="120" y1="134" x2="160" y2="150" stroke="#e5484d" stroke-width="6" stroke-linecap="round"/><circle cx="120" cy="134" r="9" fill="#0b1217"/></symbol>
+    <symbol id="obj-cartons" viewBox="0 0 240 240"><g transform="rotate(-14 100 130)"><rect x="40" y="40" width="110" height="160" rx="12" fill="#f8d43a" stroke="#0b1217" stroke-width="7"/></g><g transform="rotate(12 150 120)"><rect x="95" y="30" width="110" height="160" rx="12" fill="#e5484d" stroke="#0b1217" stroke-width="7"/></g></symbol>
+  </svg>
+
+  <!-- ==================== EN-TÊTE (menu) ==================== -->
+  <header class="site-header" id="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand" aria-label="Football Journey, accueil">
+        <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-crest"></use></svg></span>
+        <span class="brand-words">FOOTBALL<span>JOURNEY</span></span>
+      </a>
+      <nav class="primary-nav" id="primary-nav" aria-label="Navigation principale">
+        <a href="index.html" class="nav-button active" aria-current="page"><svg class="icon" aria-hidden="true"><use href="#i-home"></use></svg>Accueil</a>
+        <a href="quiz.html" class="nav-button"><svg class="icon" aria-hidden="true"><use href="#i-trophy"></use></svg>Quiz final</a>
+        <a href="pendu.html" class="nav-button"><svg class="icon" aria-hidden="true"><use href="#i-pendu"></use></svg>Pendu</a>
+        <a href="parametres.html" class="nav-button"><svg class="icon" aria-hidden="true"><use href="#i-settings"></use></svg>Paramètres</a>
+      </nav>
+      <div class="header-actions">
+        <button type="button" class="icon-button header-music btn-musique" id="header-music" aria-label="Lire la musique d’ambiance" title="Musique"><svg class="icon" aria-hidden="true"><use id="header-music-icon" href="#i-volume-off"></use></svg></button>
+        <button id="header-theme" type="button" class="icon-button header-theme" aria-label="Changer de thème" title="Changer de thème"><svg class="icon" aria-hidden="true"><use id="header-theme-icon" href="#i-sun"></use></svg></button>
+        <span class="header-divider" aria-hidden="true"></span>
+        <a href="parametres.html" id="profile-button" class="profile-button" aria-label="Mon joueur">
+          <span class="avatar"><svg class="icon" id="avatar-icon" aria-hidden="true"><use href="#i-user"></use></svg><span id="avatar-initials" hidden></span></span>
+          <span class="profile-label" id="header-pseudo">Mon joueur</span>
+          <svg class="icon" aria-hidden="true"><use href="#i-chevron"></use></svg>
+        </a>
+        <button type="button" class="icon-button menu-button" id="menu-button" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="primary-nav"><svg class="icon" aria-hidden="true"><use id="menu-icon" href="#i-menu"></use></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+
+    <!-- ==================== PAGE MISSION 2 : DRAG & DROP ==================== -->
+    <div class="container page" id="page-mission-1">
+      <a href="index.html" class="text-button back-link"><svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg>Retour à l’accueil</a>
+      <div class="mission-heading">
+        <div><div class="eyebrow">MISSION 02 / 03 · 9 - 12 ans</div><h1 class="display">L’école de football</h1><p>Bienvenue au club ! Tu découvres l’entraînement, les règles et la vie d’équipe.</p></div>
+      </div>
+      <div class="mission-objective"><svg class="icon" aria-hidden="true"><use href="#i-flag"></use></svg><span><strong>Ton objectif :</strong> Distinguer l’équipement du joueur et le matériel de l’arbitre.</span></div>
+      <section class="activity activity-sorting">
+        <div class="activity-heading">
+          <div><h2 class="display">À TOI DE JOUER.</h2><p>Fais glisser les six images dans les deux vestiaires. Chaque vestiaire accueille trois objets.</p></div>
+          <span class="activity-counter"><span id="compteur-1">0</span> / 6<small>associations</small></span>
+        </div>
+        <div class="activity-layout">
+          <div class="source-panel">
+            <div class="panel-label">LES SIX IMAGES À CLASSER</div>
+            <!-- Étape 1 du cours : éléments déplaçables (draggable="true") -->
+            <div class="source-items" id="source-1">
+              <div id="drag-1-jersey" class="drag-item" draggable="true" data-mission="1" data-cible="player"
+                   data-erreur="Non, le maillot n’est pas un outil d’arbitre !" data-explication="Le maillot fait partie de la tenue que porte chaque joueur." title="Fais glisser Maillot"><svg class="drag-image" viewBox="0 0 240 240" role="img" aria-hidden="true"><use href="#obj-maillot"></use></svg><span>Maillot</span><svg class="icon drag-handle" aria-hidden="true"><use href="#i-grip"></use></svg></div>
+              <div id="drag-1-whistle" class="drag-item" draggable="true" data-mission="1" data-cible="referee"
+                   data-erreur="Non, le sifflet appartient à l’arbitre, pas au joueur !" data-explication="L’arbitre utilise le sifflet pour signaler les arrêts et les reprises du jeu." title="Fais glisser Sifflet"><svg class="drag-image" viewBox="0 0 240 240" role="img" aria-hidden="true"><use href="#obj-sifflet"></use></svg><span>Sifflet</span><svg class="icon drag-handle" aria-hidden="true"><use href="#i-grip"></use></svg></div>
+              <div id="drag-1-boots" class="drag-item" draggable="true" data-mission="1" data-cible="player"
+                   data-erreur="Non, les crampons sont les chaussures du joueur !" data-explication="Les crampons sont adaptés à la surface du terrain pour ne pas glisser." title="Fais glisser Crampons"><svg class="drag-image" viewBox="0 0 240 240" role="img" aria-hidden="true"><use href="#obj-crampons"></use></svg><span>Crampons</span><svg class="icon drag-handle" aria-hidden="true"><use href="#i-grip"></use></svg></div>
+              <div id="drag-1-timer" class="drag-item" draggable="true" data-mission="1" data-cible="referee"
+                   data-erreur="Non, c’est l’arbitre qui gère le temps de jeu !" data-explication="L’arbitre mesure le temps de jeu à l’aide de sa montre ou de son chronomètre." title="Fais glisser Chronomètre"><svg class="drag-image" viewBox="0 0 240 240" role="img" aria-hidden="true"><use href="#obj-chronometre"></use></svg><span>Chronomètre</span><svg class="icon drag-handle" aria-hidden="true"><use href="#i-grip"></use></svg></div>
+              <div id="drag-1-shinguards" class="drag-item" draggable="true" data-mission="1" data-cible="player"
+                   data-erreur="Non, les protège-tibias protègent les jambes du joueur !" data-explication="Les protège-tibias se portent sous les chaussettes et sont obligatoires en match." title="Fais glisser Protège-tibias"><svg class="drag-image" viewBox="0 0 240 240" role="img" aria-hidden="true"><use href="#obj-protege-tibias"></use></svg><span>Protège-tibias</span><svg class="icon drag-handle" aria-hidden="true"><use href="#i-grip"></use></svg></div>
+              <div id="drag-1-cards" class="drag-item" draggable="true" data-mission="1" data-cible="referee"
+                   data-erreur="Non, seul l’arbitre peut montrer un carton !" data-explication="L’arbitre sort un carton jaune pour avertir et un carton rouge pour exclure." title="Fais glisser Cartons jaune et rouge"><svg class="drag-image" viewBox="0 0 240 240" role="img" aria-hidden="true"><use href="#obj-cartons"></use></svg><span>Cartons jaune et rouge</span><svg class="icon drag-handle" aria-hidden="true"><use href="#i-grip"></use></svg></div>
+            </div>
+            <p class="source-help" id="aide-1">Fais glisser chaque élément avec la souris et lâche-le dans la bonne zone.</p>
+          </div>
+          <div class="target-panel">
+            <div class="panel-label">LES DEUX VESTIAIRES</div>
+            <!-- Zones de dépôt : les écouteurs dragover et drop sont ajoutés par script.js -->
+            <div class="target-zones">
+              <div id="zone-player" class="drop-zone" data-mission="1">
+                <span class="zone-number">01</span>
+                <div class="zone-content">
+                  <span class="zone-title">L’équipement du joueur</span>
+                  <span class="zone-description">Ce que le joueur porte sur lui pour jouer. · <span id="nombre-player">0</span>/3</span>
+                  <div class="zone-answers" id="answers-player"></div>
+                </div>
+                <svg class="icon drop-placeholder" aria-hidden="true"><use href="#i-download"></use></svg>
+              </div>
+              <div id="zone-referee" class="drop-zone" data-mission="1">
+                <span class="zone-number">02</span>
+                <div class="zone-content">
+                  <span class="zone-title">Le matériel de l’arbitre</span>
+                  <span class="zone-description">Ce qui sert à diriger le match et à gérer le temps. · <span id="nombre-referee">0</span>/3</span>
+                  <div class="zone-answers" id="answers-referee"></div>
+                </div>
+                <svg class="icon drop-placeholder" aria-hidden="true"><use href="#i-download"></use></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="feedback" id="feedback-1" role="status" aria-live="polite"><svg class="icon" aria-hidden="true"><use id="feedback-1-icone" href="#i-info"></use></svg><span id="feedback-1-texte">Une erreur ? Lis l’explication, puis réessaie.</span></div>
+        <div class="mission-bottom">
+          <p id="bas-1">Place tous les éléments pour terminer la mission.</p>
+          <button type="button" class="button" id="terminer-1" disabled>TERMINER LA MISSION <svg class="icon" aria-hidden="true"><use href="#i-check"></use></svg></button>
+          <a href="mission3.html" class="button" id="suivant-1" hidden>MISSION SUIVANTE<svg class="icon" aria-hidden="true"><use href="#i-arrow"></use></svg></a>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- Musique d'ambiance : lue uniquement quand le joueur clique sur Lecture -->
+  <audio id="musique" src="audio/road-to-glory.mp3" loop preload="none"></audio>
+
+  <noscript>
+    <div class="container page">
+      <h1 class="display noscript-title">FOOTBALL JOURNEY</h1>
+      <p class="noscript-text">Active JavaScript dans ton navigateur pour créer ton joueur, participer aux missions et sauvegarder ton parcours.</p>
+    </div>
+  </noscript>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">FOOTBALL <span>JOURNEY.</span></div>
+      <p class="footer-description">Le talent se travaille. La légende se construit.</p>
+      <div class="footer-links">
+        <span class="muted storage-status">Projet éducatif · 2026</span>
+        <span class="muted">Photos et vidéo : Pexels</span>
+        <a href="parametres.html">Paramètres</a>
+      </div>
+    </div>
+  </footer>
+
+
+  <aside id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true">
+    <svg class="icon" aria-hidden="true"><use id="toast-icon-use" href="#i-info"></use></svg>
+    <p id="toast-text"></p>
+    <button id="toast-close" type="button" class="icon-button" aria-label="Fermer le message"><svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg></button>
+  </aside>
+
+  <script src="script.js" defer></script>
+</body>
+</html>

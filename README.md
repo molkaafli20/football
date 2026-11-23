@@ -14,11 +14,20 @@ Les photos et la vidéo viennent de Pexels (liens en ligne) : une connexion inte
 ## Structure
 
 ```
-index.html   → tout le HTML : en-tête, les 7 pages (accueil, 3 missions, quiz, pendu, paramètres),
-               pied de page, icônes SVG et les 6 images du Drag & Drop
-style.css    → tout le style (thème sombre/clair, animations, responsive)
-script.js    → seulement les fonctionnalités : afficher la bonne page (hidden), mettre à jour
-               les textes (textContent), Drag & Drop, quiz, pendu, Web Storage, géolocalisation
+index.html       → accueil : bannière, 3 missions, carte des stades, inscription, vidéo, musique
+mission1.html    → mission 1 (Drag & Drop : 3 équipements)
+mission2.html    → mission 2 (Drag & Drop : 6 images, 2 vestiaires)
+mission3.html    → mission 3 (Drag & Drop : 4 postes)
+quiz.html        → quiz final (10 questions)
+pendu.html       → jeu du pendu
+parametres.html  → profil, géolocalisation, musique, thème, données enregistrées
+style.css        → tout le style (thème sombre/clair, animations, responsive)
+script.js        → les fonctionnalités, communes aux 7 pages : textes (textContent), Drag & Drop,
+                   quiz, pendu, Web Storage, géolocalisation
+
+On passe d'une page à l'autre avec de simples liens <a href="quiz.html">.
+Chaque page indique son nom dans <body data-page="...">, et script.js n'exécute
+que ce qui la concerne. Les données passent d'une page à l'autre par le localStorage.
 audio/       → road-to-glory.mp3, la musique d'ambiance (balise <audio>)
 ```
 
