@@ -16,7 +16,6 @@
    ========================================================================== */
 const NB_MISSIONS = 3;
 const PAGES = ['home', 'mission-0', 'mission-1', 'mission-2', 'quiz', 'hangman', 'settings'];
-const TITRES = { home: 'Deviens une légende !', 'mission-0': 'Le rêve commence', 'mission-1': 'L’école de football', 'mission-2': 'Le jeune talent', quiz: 'Quiz final', hangman: 'Pendu football', settings: 'Paramètres' };
 // Numéro de la bonne réponse (0 = A, 1 = B, 2 = C, 3 = D) pour chacune des 10 questions du quiz.
 const BONNES_REPONSES = [2, 3, 1, 2, 0, 3, 1, 2, 0, 3];
 const MOTS = ['FOOTBALL', 'STADE', 'BALLON', 'GARDIEN', 'ARBITRE', 'BUT', 'JOUEUR', 'MATCH', 'COUPE', 'PENALTY'];
@@ -164,7 +163,6 @@ function validateProfile(input) {
 }
 
 let state = readState();
-let currentPage = 'home';
 
 function completedCount() {
   return state.missions.filter(m => m.completed).length;
@@ -179,15 +177,17 @@ function canAccessMission(id) {
    ========================================================================== */
 // Montre une seule page de <main> et cache les autres (attribut hidden).
 function showPage(name) {
-  currentPage = name;
-  PAGES.forEach(page => { document.getElementById('page-' + page).hidden = page !== name; });
-  const menu = name.startsWith('mission') ? 'home' : name;
-  Array.from(document.getElementsByClassName('nav-button')).forEach(button => {
-    button.classList.toggle('active', button.dataset.route === menu);
-    if (button.dataset.route === menu) button.setAttribute('aria-current', 'page');
-    else button.removeAttribute('aria-current');
+  // 1. Afficher la page demandée et cacher les autres.
+  PAGES.forEach(function (page) {
+    document.getElementById('page-' + page).hidden = (page !== name);
   });
-  document.title = 'FOOTBALL JOURNEY - ' + TITRES[name];
+  // 2. Allumer le bon bouton du menu (les pages de mission font partie de l'accueil).
+  let menu = name;
+  if (name.startsWith('mission')) menu = 'home';
+  Array.from(document.getElementsByClassName('nav-button')).forEach(function (button) {
+    button.classList.toggle('active', button.dataset.route === menu);
+  });
+  // 3. Revenir en haut de la page.
   window.scrollTo(0, 0);
 }
 
