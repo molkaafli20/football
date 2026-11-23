@@ -4,9 +4,13 @@
    parametres) reliés par de simples liens <a href>. Ils utilisent tous ce fichier.
 
    Ce fichier n'utilise que des instructions de base :
-   variables, if / else, boucles for, fonctions, getElementById,
-   getElementsByClassName, textContent, classList, addEventListener,
-   et les méthodes du cours (Drag & Drop, Web Storage, géolocalisation).
+   variables, if / else, fonctions, getElementById, getElementsByClassName,
+   textContent, classList, addEventListener, et les méthodes du cours
+   (Drag & Drop, Web Storage, géolocalisation).
+   Pour parcourir une liste d'éléments de la page, on utilise forEach :
+     Array.from(document.getElementsByClassName('...')).forEach(function (element) { ... });
+   (getElementsByClassName renvoie une collection ; Array.from la transforme en tableau
+   pour pouvoir appeler forEach, qui exécute la fonction pour chaque élément.)
    ========================================================================== */
 
 
@@ -124,7 +128,7 @@ function readState() {
   }
 
   // Missions : les éléments placés sont séparés par des virgules (« drag-0-ball,drag-0-boots »).
-  for (let i = 0; i < 3; i++) {
+  [0, 1, 2].forEach(function (i) {
     const placees = localStorage.getItem('mission' + i + 'Placees');
     if (placees) {
       missionsPlacees[i] = placees.split(',');
@@ -132,7 +136,7 @@ function readState() {
     if (localStorage.getItem('mission' + i + 'Terminee') === 'true') {
       missionsTerminees[i] = true;
     }
-  }
+  });
 
   // Dernier score du quiz.
   if (localStorage.getItem('dernierScoreQuiz') !== null) {
@@ -162,10 +166,10 @@ function saveState() {
     localStorage.removeItem('precision');
   }
 
-  for (let i = 0; i < 3; i++) {
-    localStorage.setItem('mission' + i + 'Placees', missionsPlacees[i].join(','));
+  missionsPlacees.forEach(function (placees, i) {
+    localStorage.setItem('mission' + i + 'Placees', placees.join(','));
     localStorage.setItem('mission' + i + 'Terminee', missionsTerminees[i]);
-  }
+  });
 
   if (dernierScoreQuiz !== null) {
     localStorage.setItem('dernierScoreQuiz', dernierScoreQuiz);
@@ -216,11 +220,11 @@ function profileIsValid(erreurs) {
 // Nombre de missions terminées.
 function completedCount() {
   let total = 0;
-  for (let i = 0; i < 3; i++) {
-    if (missionsTerminees[i]) {
+  missionsTerminees.forEach(function (terminee) {
+    if (terminee) {
       total = total + 1;
     }
-  }
+  });
   return total;
 }
 
@@ -295,8 +299,8 @@ function updateHome() {
   }
 
   // Les 3 cartes de mission : terminée, ouverte ou verrouillée.
-  for (let i = 0; i < 3; i++) {
-    const carte = document.getElementById('carte-mission-' + i);
+  // forEach donne chaque carte et son numéro i (0, 1, 2).
+  Array.from(document.getElementsByClassName('mission-card')).forEach(function (carte, i) {
     const icone = document.getElementById('carte-mission-' + i + '-icone');
     const fleche = document.getElementById('carte-mission-' + i + '-fleche');
     const texte = document.getElementById('carte-mission-' + i + '-texte');
@@ -316,7 +320,7 @@ function updateHome() {
       fleche.setAttribute('href', '#i-lock');
       texte.textContent = 'Chaque chose en son temps';
     }
-  }
+  });
 }
 
 // Paramètres (parametres.html).
@@ -381,13 +385,13 @@ function startJourney() {
     askRegistration();
     return;
   }
-  for (let i = 0; i < 3; i++) {
-    if (!missionsTerminees[i]) {
-      location.href = 'mission' + (i + 1) + '.html';
-      return;
-    }
+  // indexOf(false) : numéro de la première mission pas encore terminée (-1 si toutes le sont).
+  const suivante = missionsTerminees.indexOf(false);
+  if (suivante === -1) {
+    location.href = 'quiz.html';
+  } else {
+    location.href = 'mission' + (suivante + 1) + '.html';
   }
-  location.href = 'quiz.html';
 }
 
 // Menu sur téléphone : ouvrir ou fermer.
@@ -452,18 +456,16 @@ function submitProfile() {
    ========================================================================== */
 // Clic sur un point : on l'allume et on affiche la fiche du stade (les fiches sont dans index.html).
 function showStadium(id) {
-  const points = document.getElementsByClassName('map-marker');
-  for (let i = 0; i < points.length; i++) {
-    if (points[i].dataset.stadium === id) {
-      points[i].classList.add('active');
+  Array.from(document.getElementsByClassName('map-marker')).forEach(function (point) {
+    if (point.dataset.stadium === id) {
+      point.classList.add('active');
     } else {
-      points[i].classList.remove('active');
+      point.classList.remove('active');
     }
-  }
-  const fiches = document.getElementsByClassName('map-fiche');
-  for (let i = 0; i < fiches.length; i++) {
-    fiches[i].hidden = (fiches[i].id !== 'fiche-' + id);
-  }
+  });
+  Array.from(document.getElementsByClassName('map-fiche')).forEach(function (fiche) {
+    fiche.hidden = (fiche.id !== 'fiche-' + id);
+  });
 }
 
 
@@ -484,10 +486,9 @@ function drag(ev) {
 // Fin du déplacement (réussi ou non).
 function finDrag(ev) {
   ev.target.classList.remove('dragging');
-  const zones = document.getElementsByClassName('drop-zone');
-  for (let i = 0; i < zones.length; i++) {
-    zones[i].classList.remove('drag-over');
-  }
+  Array.from(document.getElementsByClassName('drop-zone')).forEach(function (zone) {
+    zone.classList.remove('drag-over');
+  });
   removeDragData(ev);
 }
 
@@ -524,18 +525,16 @@ function quitterZone(ev) {
 
 // Les éléments et les zones sont déjà dans le HTML : on leur ajoute les écouteurs.
 function activerDragAndDrop() {
-  const elements = document.getElementsByClassName('drag-item');
-  for (let i = 0; i < elements.length; i++) {
-    elements[i].addEventListener('dragstart', drag);
-    elements[i].addEventListener('dragend', finDrag);
-  }
-  const zones = document.getElementsByClassName('drop-zone');
-  for (let i = 0; i < zones.length; i++) {
-    zones[i].addEventListener('dragenter', entrerZone);
-    zones[i].addEventListener('dragover', allowDrop);
-    zones[i].addEventListener('dragleave', quitterZone);
-    zones[i].addEventListener('drop', drop);
-  }
+  Array.from(document.getElementsByClassName('drag-item')).forEach(function (element) {
+    element.addEventListener('dragstart', drag);
+    element.addEventListener('dragend', finDrag);
+  });
+  Array.from(document.getElementsByClassName('drop-zone')).forEach(function (zone) {
+    zone.addEventListener('dragenter', entrerZone);
+    zone.addEventListener('dragover', allowDrop);
+    zone.addEventListener('dragleave', quitterZone);
+    zone.addEventListener('drop', drop);
+  });
 }
 
 // Bonne zone : l'élément devient un enfant de la zone (appendChild) et ne se déplace plus.
@@ -561,10 +560,9 @@ function verifierDepot(element, zone) {
   if (element.getAttribute('draggable') !== 'true') {
     return;   // élément déjà placé
   }
-  const zones = document.getElementsByClassName('drop-zone');
-  for (let i = 0; i < zones.length; i++) {
-    zones[i].classList.remove('is-error');
-  }
+  Array.from(document.getElementsByClassName('drop-zone')).forEach(function (z) {
+    z.classList.remove('is-error');
+  });
   // La bonne zone de l'élément est écrite dans son attribut data-cible.
   if ('zone-' + element.dataset.cible !== zone.id) {
     zone.classList.add('is-error');
@@ -580,39 +578,38 @@ function verifierDepot(element, zone) {
 
 // Compteur, zones pleines, boutons et textes de la mission ouverte.
 function updateMission() {
-  const elements = document.getElementsByClassName('drag-item');
+  const elements = Array.from(document.getElementsByClassName('drag-item'));
   let places = 0;
-  for (let i = 0; i < elements.length; i++) {
-    if (elements[i].classList.contains('placed')) {
+  elements.forEach(function (element) {
+    if (element.classList.contains('placed')) {
       places = places + 1;
     }
-  }
+  });
   const tousPlaces = (places === elements.length);
   const terminee = missionsTerminees[MISSION];
   document.getElementById('compteur-' + MISSION).textContent = places;
 
   // Chaque zone : combien d'éléments attendus, combien déjà dedans.
-  const zones = document.getElementsByClassName('drop-zone');
-  for (let i = 0; i < zones.length; i++) {
-    const cible = zones[i].id.replace('zone-', '');
+  Array.from(document.getElementsByClassName('drop-zone')).forEach(function (zone) {
+    const cible = zone.id.replace('zone-', '');
     let attendus = 0;
-    for (let j = 0; j < elements.length; j++) {
-      if (elements[j].dataset.cible === cible) {
+    elements.forEach(function (element) {
+      if (element.dataset.cible === cible) {
         attendus = attendus + 1;
       }
-    }
+    });
     const dedans = document.getElementById('answers-' + cible).children.length;
     if (dedans === attendus) {
-      zones[i].classList.add('is-full');
+      zone.classList.add('is-full');
     } else {
-      zones[i].classList.remove('is-full');
+      zone.classList.remove('is-full');
     }
     // Compteur « 0/3 » des vestiaires (mission 2 seulement).
     const nombre = document.getElementById('nombre-' + cible);
     if (nombre) {
       nombre.textContent = dedans;
     }
-  }
+  });
 
   // Boutons : « Terminer » cliquable quand tout est placé, « Suivant » quand la mission est terminée.
   document.getElementById('terminer-' + MISSION).hidden = terminee;
@@ -649,13 +646,12 @@ function finishMission() {
 
 // Au chargement : on remet dans leur zone les éléments déjà bien placés.
 function restoreMission() {
-  const ids = missionsPlacees[MISSION];
-  for (let i = 0; i < ids.length; i++) {
-    const element = document.getElementById(ids[i]);
+  missionsPlacees[MISSION].forEach(function (id) {
+    const element = document.getElementById(id);
     if (element) {
       placeItem(element);
     }
-  }
+  });
   if (missionsTerminees[MISSION]) {
     setFeedback('success', 'Mission accomplie ! Ta progression est enregistrée.');
   }
@@ -680,10 +676,9 @@ function openQuiz() {
 function startQuiz() {
   question = 0;
   reponses = [];
-  const options = document.getElementsByClassName('quiz-option');
-  for (let i = 0; i < options.length; i++) {
-    options[i].classList.remove('selected');
-  }
+  Array.from(document.getElementsByClassName('quiz-option')).forEach(function (option) {
+    option.classList.remove('selected');
+  });
   document.getElementById('quiz-game').hidden = false;
   document.getElementById('quiz-result').hidden = true;
   showQuestion();
@@ -691,9 +686,9 @@ function startQuiz() {
 
 // Affiche seulement la question en cours.
 function showQuestion() {
-  for (let i = 0; i < 10; i++) {
-    document.getElementById('question-' + i).hidden = (i !== question);
-  }
+  Array.from(document.getElementsByClassName('quiz-card')).forEach(function (carte, i) {
+    carte.hidden = (i !== question);
+  });
   document.getElementById('quiz-step').textContent = 'QUESTION ' + (question + 1) + ' SUR 10';
   document.getElementById('quiz-percent').textContent = (question + 1) * 10 + ' %';
   document.getElementById('quiz-bar').className = 'pct-' + (question + 1) * 10;
@@ -709,10 +704,9 @@ function showQuestion() {
 // Clic sur une réponse : on la retient et on l'allume.
 function chooseQuizAnswer(bouton) {
   reponses[question] = Number(bouton.dataset.quizOption);
-  const options = document.getElementById('question-' + question).getElementsByClassName('quiz-option');
-  for (let i = 0; i < options.length; i++) {
-    options[i].classList.remove('selected');
-  }
+  Array.from(document.getElementById('question-' + question).getElementsByClassName('quiz-option')).forEach(function (option) {
+    option.classList.remove('selected');
+  });
   bouton.classList.add('selected');
   document.getElementById('quiz-next').disabled = false;
 }
@@ -725,11 +719,11 @@ function advanceQuiz() {
     return;
   }
   let score = 0;
-  for (let i = 0; i < 10; i++) {
-    if (reponses[i] === BONNES_REPONSES[i]) {
+  reponses.forEach(function (reponse, i) {
+    if (reponse === BONNES_REPONSES[i]) {
       score = score + 1;
     }
-  }
+  });
   dernierScoreQuiz = score;
   // Score du quiz dans le sessionStorage (cours : sessionStorage.setItem("score", 120)).
   if (storageSupported()) {
@@ -770,22 +764,24 @@ let lettres = [];      // lettres déjà proposées
 // Nombre de lettres proposées qui ne sont pas dans le mot.
 function countErrors() {
   let erreurs = 0;
-  for (let i = 0; i < lettres.length; i++) {
-    if (!mot.includes(lettres[i])) {
+  lettres.forEach(function (lettre) {
+    if (!mot.includes(lettre)) {
       erreurs = erreurs + 1;
     }
-  }
+  });
   return erreurs;
 }
 
 // Gagné quand toutes les lettres du mot ont été proposées.
 function isWon() {
-  for (let i = 0; i < mot.length; i++) {
-    if (!lettres.includes(mot[i])) {
-      return false;
+  let gagne = true;
+  // split('') découpe le mot en lettres : 'BUT' → ['B', 'U', 'T'].
+  mot.split('').forEach(function (lettre) {
+    if (!lettres.includes(lettre)) {
+      gagne = false;
     }
-  }
-  return true;
+  });
+  return gagne;
 }
 
 // Nouvelle partie avec un mot différent du précédent.
@@ -796,12 +792,11 @@ function newHangmanGame() {
   }
   mot = nouveau;
   lettres = [];
-  const touches = document.getElementsByClassName('letter-key');
-  for (let i = 0; i < touches.length; i++) {
-    touches[i].disabled = false;
-    touches[i].classList.remove('good');
-    touches[i].classList.remove('bad');
-  }
+  Array.from(document.getElementsByClassName('letter-key')).forEach(function (touche) {
+    touche.disabled = false;
+    touche.classList.remove('good');
+    touche.classList.remove('bad');
+  });
   updateHangman();
 }
 
@@ -848,52 +843,48 @@ function updateHangman() {
   document.getElementById('errors-count').textContent = erreurs;
 
   // Les 6 petits points : un point « used » par erreur.
-  const points = document.getElementById('error-dots').children;
-  for (let i = 0; i < points.length; i++) {
+  Array.from(document.getElementById('error-dots').children).forEach(function (point, i) {
     if (i < erreurs) {
-      points[i].classList.add('used');
+      point.classList.add('used');
     } else {
-      points[i].classList.remove('used');
+      point.classList.remove('used');
     }
-  }
+  });
 
   // Le bonhomme : une partie de plus par erreur (éléments SVG : setAttribute / removeAttribute).
-  const parties = document.getElementById('gallows').getElementsByClassName('person');
-  for (let i = 0; i < parties.length; i++) {
+  Array.from(document.getElementById('gallows').getElementsByClassName('person')).forEach(function (partie, i) {
     if (i < erreurs) {
-      parties[i].removeAttribute('hidden');
+      partie.removeAttribute('hidden');
     } else {
-      parties[i].setAttribute('hidden', '');
+      partie.setAttribute('hidden', '');
     }
-  }
+  });
 
   // Les cases du mot : « _ » tant que la lettre n'est pas trouvée.
-  const cases = document.getElementById('word-slots').children;
-  for (let i = 0; i < cases.length; i++) {
+  Array.from(document.getElementById('word-slots').children).forEach(function (caseLettre, i) {
     if (i >= mot.length) {
-      cases[i].hidden = true;      // case en trop pour ce mot
+      caseLettre.hidden = true;      // case en trop pour ce mot
     } else {
-      cases[i].hidden = false;
+      caseLettre.hidden = false;
       const trouvee = lettres.includes(mot[i]);
       if (trouvee) {
-        cases[i].textContent = mot[i];
-        cases[i].className = 'word-slot revealed';
+        caseLettre.textContent = mot[i];
+        caseLettre.className = 'word-slot revealed';
       } else if (fini) {
-        cases[i].textContent = mot[i];
-        cases[i].className = 'word-slot missed';
+        caseLettre.textContent = mot[i];
+        caseLettre.className = 'word-slot missed';
       } else {
-        cases[i].textContent = '_';
-        cases[i].className = 'word-slot';
+        caseLettre.textContent = '_';
+        caseLettre.className = 'word-slot';
       }
     }
-  }
+  });
 
   // Partie finie : toutes les lettres sont bloquées.
   if (fini) {
-    const touches = document.getElementsByClassName('letter-key');
-    for (let i = 0; i < touches.length; i++) {
-      touches[i].disabled = true;
-    }
+    Array.from(document.getElementsByClassName('letter-key')).forEach(function (touche) {
+      touche.disabled = true;
+    });
   }
 
   // Message sous le clavier.
@@ -1070,10 +1061,9 @@ function updateMusicButtons() {
     iconeEnTete = 'volume';
   }
   document.getElementById('header-music-icon').setAttribute('href', '#i-' + iconeEnTete);
-  const icones = document.getElementsByClassName('js-audio-icon');
-  for (let i = 0; i < icones.length; i++) {
-    icones[i].setAttribute('href', '#i-' + icone);
-  }
+  Array.from(document.getElementsByClassName('js-audio-icon')).forEach(function (use) {
+    use.setAttribute('href', '#i-' + icone);
+  });
 }
 musique.addEventListener('play', updateMusicButtons);
 musique.addEventListener('pause', updateMusicButtons);
@@ -1098,10 +1088,9 @@ document.getElementById('header-theme').addEventListener('click', function () {
 });
 
 // Boutons de la musique (en-tête, accueil, paramètres).
-const boutonsMusique = document.getElementsByClassName('btn-musique');
-for (let i = 0; i < boutonsMusique.length; i++) {
-  boutonsMusique[i].addEventListener('click', toggleMusic);
-}
+Array.from(document.getElementsByClassName('btn-musique')).forEach(function (bouton) {
+  bouton.addEventListener('click', toggleMusic);
+});
 
 // Curseur du volume (accueil et paramètres) : événement « input » à chaque mouvement.
 const curseurVolume = document.getElementById('volume');
@@ -1126,14 +1115,13 @@ window.addEventListener('storage', function () {
 // ---------- Accueil (index.html) ----------
 if (PAGE === 'home') {
   // Deux boutons : « Commencer mon voyage » et « Continuer ».
-  const boutonsCommencer = document.getElementsByClassName('btn-commencer');
-  for (let i = 0; i < boutonsCommencer.length; i++) {
-    boutonsCommencer[i].addEventListener('click', startJourney);
-  }
+  Array.from(document.getElementsByClassName('btn-commencer')).forEach(function (bouton) {
+    bouton.addEventListener('click', startJourney);
+  });
 
   // Les 3 cartes de mission sont des liens : on bloque seulement une mission verrouillée.
-  for (let i = 0; i < 3; i++) {
-    document.getElementById('carte-mission-' + i).addEventListener('click', function (event) {
+  Array.from(document.getElementsByClassName('mission-card')).forEach(function (carte, i) {
+    carte.addEventListener('click', function (event) {
       if (!joueur) {
         event.preventDefault();   // le lien n'est pas suivi
         askRegistration();
@@ -1142,15 +1130,14 @@ if (PAGE === 'home') {
         notify('Cette mission est encore verrouillée. Termine d’abord la mission précédente.', 'error');
       }
     });
-  }
+  });
 
   // Les 8 points de la carte des stades.
-  const points = document.getElementsByClassName('map-marker');
-  for (let i = 0; i < points.length; i++) {
-    points[i].addEventListener('click', function () {
-      showStadium(points[i].dataset.stadium);
+  Array.from(document.getElementsByClassName('map-marker')).forEach(function (point) {
+    point.addEventListener('click', function () {
+      showStadium(point.dataset.stadium);
     });
-  }
+  });
 
   // Formulaire d'inscription.
   document.getElementById('register-form').addEventListener('submit', function (event) {
@@ -1174,24 +1161,22 @@ if (PAGE === 'mission') {
 
 // ---------- Quiz (quiz.html) ----------
 if (PAGE === 'quiz') {
-  const options = document.getElementsByClassName('quiz-option');
-  for (let i = 0; i < options.length; i++) {
-    options[i].addEventListener('click', function () {
-      chooseQuizAnswer(options[i]);
+  Array.from(document.getElementsByClassName('quiz-option')).forEach(function (option) {
+    option.addEventListener('click', function () {
+      chooseQuizAnswer(option);
     });
-  }
+  });
   document.getElementById('quiz-next').addEventListener('click', advanceQuiz);
   document.getElementById('quiz-retry').addEventListener('click', startQuiz);
 }
 
 // ---------- Pendu (pendu.html) ----------
 if (PAGE === 'hangman') {
-  const touches = document.getElementsByClassName('letter-key');
-  for (let i = 0; i < touches.length; i++) {
-    touches[i].addEventListener('click', function () {
-      guessLetter(touches[i]);
+  Array.from(document.getElementsByClassName('letter-key')).forEach(function (touche) {
+    touche.addEventListener('click', function () {
+      guessLetter(touche);
     });
-  }
+  });
   document.getElementById('hangman-replay').addEventListener('click', newHangmanGame);
 }
 
