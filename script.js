@@ -89,13 +89,6 @@ function readState() {
       accuracy: Number(localStorage.getItem('precision'))
     };
   }
-  if (localStorage.getItem('dernierResultatPendu') !== null) {
-    s.hangman.lastResult = {
-      won: localStorage.getItem('dernierResultatPendu') === 'gagné',
-      word: localStorage.getItem('dernierMotPendu'),
-      errors: Number(localStorage.getItem('dernierScorePendu'))
-    };
-  }
   // Missions : les éléments placés sont séparés par des virgules (« drag-0-ball,drag-0-boots »).
   for (let i = 0; i < NB_MISSIONS; i++) {
     const placees = localStorage.getItem('mission' + i + 'Placees');
@@ -172,9 +165,10 @@ let state = readState();
 function completedCount() {
   return state.missions.filter(m => m.completed).length;
 }
-// Une mission est ouverte quand toutes les précédentes sont terminées.
+// Une mission est ouverte quand la précédente est terminée (la mission 1 est toujours ouverte).
 function canAccessMission(id) {
-  return state.missions.slice(0, id).every(m => m.completed);
+  if (id === 0) return true;
+  return state.missions[id - 1].completed;
 }
 
 /* ==========================================================================
@@ -398,19 +392,18 @@ function setFeedback(mission, type, message) {
 
 // Vérifie le dépôt : « Bravo ! » ou message d'erreur qui explique la bonne réponse.
 function verifierDepot(item, zone) {
-  const mission = Number(zone.dataset.mission);
-  if (!state.profile || item.dataset.mission !== zone.dataset.mission || item.getAttribute('draggable') !== 'true') return;
-  Array.from(document.getElementById('page-mission-' + mission).getElementsByClassName('drop-zone')).forEach(z => z.classList.remove('is-error'));
+  if (item.getAttribute('draggable') !== 'true') return;   // élément déjà placé
+  Array.from(document.getElementsByClassName('drop-zone')).forEach(z => z.classList.remove('is-error'));
   if (item.dataset.cible !== zone.id.replace('zone-', '')) {
     zone.classList.add('is-error');
-    setFeedback(mission, 'error', item.dataset.erreur + ' ' + item.dataset.explication + ' Réessaie !');
+    setFeedback(MISSION, 'error', item.dataset.erreur + ' ' + item.dataset.explication + ' Réessaie !');
     return;
   }
   placeItem(item);
-  state.missions[mission].placed.push(item.id);
+  state.missions[MISSION].placed.push(item.id);
   persist();
-  setFeedback(mission, 'success', 'Bravo ! ' + item.dataset.explication);
-  updateMission(mission);
+  setFeedback(MISSION, 'success', 'Bravo ! ' + item.dataset.explication);
+  updateMission(MISSION);
 }
 
 // Compteur, zones pleines et boutons d'une mission.
@@ -436,9 +429,8 @@ function updateMission(mission) {
   document.getElementById('bas-' + mission).textContent = done ? 'Mission déjà terminée.' : 'Place tous les éléments pour terminer la mission.';
 }
 
+// Le bouton « Terminer » n'est cliquable que si tous les éléments sont placés.
 function finishMission(mission) {
-  const items = Array.from(document.getElementById('page-mission-' + mission).getElementsByClassName('drag-item'));
-  if (!items.every(item => item.classList.contains('placed'))) return;
   state.missions[mission].completed = true;
   persist();
   const next = mission === NB_MISSIONS - 1 ? 'Les trois missions sont terminées : place au quiz final !' : 'La mission suivante est débloquée.';
@@ -485,16 +477,15 @@ function showQuestion() {
   document.getElementById('quiz-next-label').textContent = quizIndex === 9 ? 'DÉCOUVRIR MON SCORE' : 'QUESTION SUIVANTE';
 }
 
+// Seule la question en cours est visible : on ne peut cliquer que sur ses réponses.
 function chooseQuizAnswer(button) {
-  const question = Number(button.dataset.question);
-  if (question !== quizIndex) return;
-  quizAnswers[question] = Number(button.dataset.quizOption);
-  Array.from(document.getElementById('question-' + question).getElementsByClassName('quiz-option')).forEach(b => b.classList.toggle('selected', b === button));
+  quizAnswers[quizIndex] = Number(button.dataset.quizOption);
+  Array.from(document.getElementById('question-' + quizIndex).getElementsByClassName('quiz-option')).forEach(b => b.classList.toggle('selected', b === button));
   document.getElementById('quiz-next').disabled = false;
 }
 
+// Le bouton « Suivant » n'est cliquable qu'après avoir choisi une réponse.
 function advanceQuiz() {
-  if (quizAnswers[quizIndex] === undefined) return;
   if (quizIndex < 9) {
     quizIndex++;
     showQuestion();
@@ -547,9 +538,8 @@ function newHangmanGame() {
   updateHangman();
 }
 
+// Une lettre déjà jouée, ou une partie terminée, a ses boutons désactivés : pas besoin de le vérifier.
 function guessLetter(key) {
-  const status = hangmanStatus();
-  if (!state.profile || status.finished || key.disabled) return;
   const letter = key.dataset.letter;
   guesses.push(letter);
   key.disabled = true;
@@ -678,11 +668,6 @@ function updateStoredData() {
     li.appendChild(document.createTextNode(localStorage.getItem(key)));
     list.appendChild(li);
   }
-  if (!list.children.length) {
-    const li = document.createElement('li');
-    li.textContent = 'Aucune donnée enregistrée.';
-    list.appendChild(li);
-  }
 }
 
 // Supprime tout avec localStorage.clear() et sessionStorage.clear(), puis retour à l'accueil.
@@ -703,9 +688,7 @@ const musique = document.getElementById('musique');
 function toggleMusic() {
   if (musique.paused) {
     musique.volume = state.settings.volume;
-    // play() renvoie une promesse, refusée si le navigateur bloque le son.
-    const lecture = musique.play();
-    if (lecture) lecture.catch(() => notify('Le navigateur a bloqué la lecture. Clique de nouveau sur le bouton.', 'error'));
+    musique.play();
   } else {
     musique.pause();
   }
