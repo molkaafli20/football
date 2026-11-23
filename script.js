@@ -1,253 +1,363 @@
-'use strict';
-
 /* ==========================================================================
    FOOTBALL JOURNEY — script.js
    Le site a 7 fichiers HTML (index, mission1, mission2, mission3, quiz, pendu,
    parametres) reliés par de simples liens <a href>. Ils utilisent tous ce fichier.
-   Ce fichier gère seulement les fonctionnalités :
-   - mettre à jour les textes de la page ouverte (textContent) ;
-   - Drag & Drop, quiz, pendu, carte des stades, musique ;
-   - Web Storage (localStorage / sessionStorage) et géolocalisation.
-   Sélection : document.getElementById et document.getElementsByClassName (sans raccourci).
-   Événements : chaque bouton a son propre addEventListener (section 13).
+
+   Ce fichier n'utilise que des instructions de base :
+   variables, if / else, boucles for, fonctions, getElementById,
+   getElementsByClassName, textContent, classList, addEventListener,
+   et les méthodes du cours (Drag & Drop, Web Storage, géolocalisation).
    ========================================================================== */
+
 
 /* ==========================================================================
    1. DONNÉES DU JEU
    ========================================================================== */
-const NB_MISSIONS = 3;
-// Page ouverte : écrite dans <body data-page="..."> de chaque fichier HTML
-// (home, mission, quiz, hangman ou settings).
+// Nom de la page ouverte, écrit dans <body data-page="..."> de chaque fichier HTML :
+// home, mission, quiz, hangman ou settings.
 const PAGE = document.body.dataset.page;
+
 // Pour mission1.html, mission2.html et mission3.html : numéro de la mission (0, 1 ou 2).
 const MISSION = Number(document.body.dataset.mission);
-// Numéro de la bonne réponse (0 = A, 1 = B, 2 = C, 3 = D) pour chacune des 10 questions du quiz.
+
+// Numéro de la bonne réponse (0 = A, 1 = B, 2 = C, 3 = D) pour les 10 questions du quiz.
 const BONNES_REPONSES = [2, 3, 1, 2, 0, 3, 1, 2, 0, 3];
+
+// Mots du pendu.
 const MOTS = ['FOOTBALL', 'STADE', 'BALLON', 'GARDIEN', 'ARBITRE', 'BUT', 'JOUEUR', 'MATCH', 'COUPE', 'PENALTY'];
 
+
 /* ==========================================================================
-   2. OUTILS
+   2. DONNÉES DU JOUEUR
+   Ces variables sont remplies au démarrage avec le localStorage (readState),
+   puis enregistrées après chaque changement (saveState).
    ========================================================================== */
-// Petit message en bas de l'écran.
+let joueur = null;                              // { prenom, nom, pseudo, age } ou null
+let volume = 0.35;                              // volume de la musique, de 0 à 1
+let mode = 'dark';                              // 'dark' (sombre) ou 'light' (clair)
+let luminosite = 100;                           // de 60 à 120 %
+let position = null;                            // { latitude, longitude, precision } ou null
+let missionsPlacees = [[], [], []];             // id des éléments bien placés, pour chaque mission
+let missionsTerminees = [false, false, false];  // mission terminée ou non
+let dernierScoreQuiz = null;                    // score sur 10, ou null si le quiz n'a pas été fait
+
+
+/* ==========================================================================
+   3. MESSAGE EN BAS DE L'ÉCRAN
+   ========================================================================== */
 let minuteur = null;
 
 function notify(message, type) {
   const bulle = document.getElementById('toast');
   document.getElementById('toast-text').textContent = message;
   bulle.classList.add('visible');
-  bulle.classList.toggle('error', type === 'error');   // rouge seulement pour une erreur
-  clearTimeout(minuteur);                               // annule l'ancien minuteur
+  // En rouge seulement pour une erreur.
+  if (type === 'error') {
+    bulle.classList.add('error');
+  } else {
+    bulle.classList.remove('error');
+  }
+  // On annule l'ancien minuteur, puis on cache la bulle après 5 secondes.
+  clearTimeout(minuteur);
   minuteur = setTimeout(function () {
     bulle.classList.remove('visible');
   }, 5000);
 }
 
-/* ==========================================================================
-   3. ÉTAT DU JOUEUR ET WEB STORAGE
-   Chaque information a sa propre clé dans le localStorage (que des chaînes
-   simples, comme dans le cours) :
-   pseudo, nom, prenom, age, volume, mode, luminosite, latitude, longitude,
-   precision, dernierResultatPendu, dernierScorePendu, dernierMotPendu,
-   mission0Placees, mission0Terminee (idem 1 et 2), dernierScoreQuiz.
-   ========================================================================== */
-function freshState() {
-  return {
-    profile: null,
-    settings: { volume: 0.35, theme: 'dark', brightness: 100, location: null },
-    missions: [{ placed: [], completed: false }, { placed: [], completed: false }, { placed: [], completed: false }],
-    quiz: { lastScore: null }
-  };
-}
 
+/* ==========================================================================
+   4. WEB STORAGE (cours)
+   Chaque information a sa propre clé dans le localStorage :
+   pseudo, nom, prenom, age, volume, mode, luminosite, latitude, longitude,
+   precision, mission0Placees, mission0Terminee (idem 1 et 2), dernierScoreQuiz,
+   dernierResultatPendu, dernierScorePendu, dernierMotPendu.
+   ========================================================================== */
 // Test du cours : le navigateur supporte-t-il le Web Storage ?
 function storageSupported() {
   return typeof(Storage) !== 'undefined';
 }
 
-// Lecture avec getItem(), clé par clé.
+// Lecture avec getItem() au démarrage de la page.
+// Le localStorage ne contient que du texte : on le transforme en nombres avec Number().
 function readState() {
-  const s = freshState();
-  if (!storageSupported()) return s;
-  if (localStorage.getItem('pseudo') !== null) {
-    const checked = validateProfile({
-      firstName: localStorage.getItem('prenom'), lastName: localStorage.getItem('nom'),
-      nickname: localStorage.getItem('pseudo'), age: localStorage.getItem('age')
-    });
-    if (checked.valid) s.profile = checked.profile;
+  if (!storageSupported()) {
+    return;
   }
-  // On garde la valeur enregistrée seulement si elle est valide (volume entre 0 et 1, luminosité entre 60 et 120).
-  const volume = Number(localStorage.getItem('volume'));
-  if (localStorage.getItem('volume') !== null && volume >= 0 && volume <= 1) s.settings.volume = volume;
-  const luminosite = Number(localStorage.getItem('luminosite'));
-  if (luminosite >= 60 && luminosite <= 120) s.settings.brightness = luminosite;
-  s.settings.theme = localStorage.getItem('mode') === 'light' ? 'light' : 'dark';
+
+  // Joueur : gardé seulement s'il est valide.
+  if (localStorage.getItem('pseudo') !== null) {
+    const prenom = localStorage.getItem('prenom');
+    const nom = localStorage.getItem('nom');
+    const pseudo = localStorage.getItem('pseudo');
+    const age = Number(localStorage.getItem('age'));
+    if (profileIsValid(checkProfile(prenom, nom, pseudo, age))) {
+      joueur = { prenom: prenom, nom: nom, pseudo: pseudo, age: age };
+    }
+  }
+
+  // Volume entre 0 et 1.
+  if (localStorage.getItem('volume') !== null) {
+    const v = Number(localStorage.getItem('volume'));
+    if (v >= 0 && v <= 1) {
+      volume = v;
+    }
+  }
+
+  // Luminosité entre 60 et 120.
+  const l = Number(localStorage.getItem('luminosite'));
+  if (l >= 60 && l <= 120) {
+    luminosite = l;
+  }
+
+  // Thème : clair seulement si c'est écrit « light ».
+  if (localStorage.getItem('mode') === 'light') {
+    mode = 'light';
+  }
+
+  // Position (géolocalisation).
   if (localStorage.getItem('latitude') !== null) {
-    s.settings.location = {
+    position = {
       latitude: Number(localStorage.getItem('latitude')),
       longitude: Number(localStorage.getItem('longitude')),
-      accuracy: Number(localStorage.getItem('precision'))
+      precision: Number(localStorage.getItem('precision'))
     };
   }
+
   // Missions : les éléments placés sont séparés par des virgules (« drag-0-ball,drag-0-boots »).
-  for (let i = 0; i < NB_MISSIONS; i++) {
+  for (let i = 0; i < 3; i++) {
     const placees = localStorage.getItem('mission' + i + 'Placees');
-    s.missions[i].placed = placees ? placees.split(',') : [];
-    s.missions[i].completed = localStorage.getItem('mission' + i + 'Terminee') === 'true';
+    if (placees) {
+      missionsPlacees[i] = placees.split(',');
+    }
+    if (localStorage.getItem('mission' + i + 'Terminee') === 'true') {
+      missionsTerminees[i] = true;
+    }
   }
+
   // Dernier score du quiz.
-  const score = localStorage.getItem('dernierScoreQuiz');
-  if (score !== null && Number.isInteger(Number(score))) s.quiz.lastScore = Number(score);
-  return s;
+  if (localStorage.getItem('dernierScoreQuiz') !== null) {
+    dernierScoreQuiz = Number(localStorage.getItem('dernierScoreQuiz'));
+  }
 }
 
-// Écriture avec setItem() / removeItem().
+// Écriture avec setItem() et removeItem().
 function saveState() {
-  const p = state.profile;
-  if (p) {
-    localStorage.setItem('pseudo', p.nickname);
-    localStorage.setItem('nom', p.lastName);
-    localStorage.setItem('prenom', p.firstName);
-    localStorage.setItem('age', p.age);
+  if (joueur) {
+    localStorage.setItem('pseudo', joueur.pseudo);
+    localStorage.setItem('nom', joueur.nom);
+    localStorage.setItem('prenom', joueur.prenom);
+    localStorage.setItem('age', joueur.age);
   }
-  localStorage.setItem('volume', state.settings.volume);
-  localStorage.setItem('mode', state.settings.theme);
-  localStorage.setItem('luminosite', state.settings.brightness);
-  const loc = state.settings.location;
-  if (loc) {
-    localStorage.setItem('latitude', loc.latitude);
-    localStorage.setItem('longitude', loc.longitude);
-    localStorage.setItem('precision', loc.accuracy);
+  localStorage.setItem('volume', volume);
+  localStorage.setItem('mode', mode);
+  localStorage.setItem('luminosite', luminosite);
+
+  if (position) {
+    localStorage.setItem('latitude', position.latitude);
+    localStorage.setItem('longitude', position.longitude);
+    localStorage.setItem('precision', position.precision);
   } else {
     localStorage.removeItem('latitude');
     localStorage.removeItem('longitude');
     localStorage.removeItem('precision');
   }
-  state.missions.forEach((m, i) => {
-    localStorage.setItem('mission' + i + 'Placees', m.placed.join(','));
-    localStorage.setItem('mission' + i + 'Terminee', m.completed);
-  });
-  if (state.quiz.lastScore !== null) localStorage.setItem('dernierScoreQuiz', state.quiz.lastScore);
+
+  for (let i = 0; i < 3; i++) {
+    localStorage.setItem('mission' + i + 'Placees', missionsPlacees[i].join(','));
+    localStorage.setItem('mission' + i + 'Terminee', missionsTerminees[i]);
+  }
+
+  if (dernierScoreQuiz !== null) {
+    localStorage.setItem('dernierScoreQuiz', dernierScoreQuiz);
+  }
 }
 
+// Sauvegarder après chaque changement.
 function persist() {
-  if (storageSupported()) saveState();
-  if (PAGE === 'settings') updateStoredData();
+  if (storageSupported()) {
+    saveState();
+  }
+  if (PAGE === 'settings') {
+    updateStoredData();
+  }
 }
 
-function validateProfile(input) {
-  const profile = {
-    firstName: String(input.firstName || '').trim().replace(/\s+/g, ' '),
-    lastName: String(input.lastName || '').trim().replace(/\s+/g, ' '),
-    nickname: String(input.nickname || '').trim(),
-    age: Number(input.age)
-  };
-  const errors = {};
-  // Prénom et nom : 1 à 40 lettres (accents compris), apostrophes, espaces ou tirets.
-  const lettres = /^[a-zA-ZÀ-ÿ' -]{1,40}$/;
-  if (!lettres.test(profile.firstName)) errors.firstName = 'Entre un prénom valide (40 caractères maximum).';
-  if (!lettres.test(profile.lastName)) errors.lastName = 'Entre un nom valide (40 caractères maximum).';
-  // Pseudo : 3 à 20 lettres sans accent, chiffres, tirets ou underscores.
-  if (!/^[a-zA-Z0-9_-]{3,20}$/.test(profile.nickname)) errors.nickname = '3 à 20 lettres, chiffres, tirets ou underscores, sans espace.';
-  // Âge : nombre entier entre 5 et 100 (un champ vide donne 0, donc il est refusé).
-  if (!Number.isInteger(profile.age) || profile.age < 5 || profile.age > 100) errors.age = 'Entre un âge entier entre 5 et 100 ans.';
-  return { profile, errors, valid: Object.keys(errors).length === 0 };
-}
-
-let state = readState();
-
-function completedCount() {
-  return state.missions.filter(m => m.completed).length;
-}
-// Une mission est ouverte quand la précédente est terminée (la mission 1 est toujours ouverte).
-function canAccessMission(id) {
-  if (id === 0) return true;
-  return state.missions[id - 1].completed;
-}
 
 /* ==========================================================================
-   4. AFFICHAGE : mettre à jour les textes de la page ouverte
+   5. VÉRIFICATION DU JOUEUR
+   ========================================================================== */
+// Renvoie un message d'erreur pour chaque champ ('' = le champ est correct).
+function checkProfile(prenom, nom, pseudo, age) {
+  const erreurs = { prenom: '', nom: '', pseudo: '', age: '' };
+  // Prénom et nom : 1 à 40 lettres (accents compris), apostrophes, espaces ou tirets.
+  const modeleNom = /^[a-zA-ZÀ-ÿ' -]{1,40}$/;
+  if (!modeleNom.test(prenom)) {
+    erreurs.prenom = 'Entre un prénom valide (40 caractères maximum).';
+  }
+  if (!modeleNom.test(nom)) {
+    erreurs.nom = 'Entre un nom valide (40 caractères maximum).';
+  }
+  // Pseudo : 3 à 20 lettres sans accent, chiffres, tirets ou underscores.
+  if (!/^[a-zA-Z0-9_-]{3,20}$/.test(pseudo)) {
+    erreurs.pseudo = '3 à 20 lettres, chiffres, tirets ou underscores, sans espace.';
+  }
+  // Âge : nombre entier entre 5 et 100 (un champ vide donne 0, donc il est refusé).
+  if (!Number.isInteger(age) || age < 5 || age > 100) {
+    erreurs.age = 'Entre un âge entier entre 5 et 100 ans.';
+  }
+  return erreurs;
+}
+
+// Le joueur est valide quand il n'y a aucun message d'erreur.
+function profileIsValid(erreurs) {
+  return erreurs.prenom === '' && erreurs.nom === '' && erreurs.pseudo === '' && erreurs.age === '';
+}
+
+// Nombre de missions terminées.
+function completedCount() {
+  let total = 0;
+  for (let i = 0; i < 3; i++) {
+    if (missionsTerminees[i]) {
+      total = total + 1;
+    }
+  }
+  return total;
+}
+
+// Une mission est ouverte quand la précédente est terminée (la mission 1 est toujours ouverte).
+function canAccessMission(numero) {
+  if (numero === 0) {
+    return true;
+  }
+  return missionsTerminees[numero - 1];
+}
+
+
+/* ==========================================================================
+   6. AFFICHAGE : mettre à jour les textes de la page ouverte
    ========================================================================== */
 // Appelée au chargement et après chaque changement.
 function refreshAll() {
   updateHeader();
-  if (PAGE === 'home') updateHome();
-  if (PAGE === 'mission') updateMission(MISSION);
-  if (PAGE === 'settings') updateSettings();
+  if (PAGE === 'home') {
+    updateHome();
+  }
+  if (PAGE === 'mission') {
+    updateMission();
+  }
+  if (PAGE === 'settings') {
+    updateSettings();
+  }
   // Curseur du volume : il existe seulement sur l'accueil et les paramètres.
   const curseur = document.getElementById('volume');
   if (curseur) {
-    curseur.value = Math.round(state.settings.volume * 100);
+    curseur.value = Math.round(volume * 100);
     document.getElementById('volume-value').textContent = curseur.value + ' %';
   }
 }
 
 // En-tête (présent sur toutes les pages) : pseudo, initiales et icône du thème.
 function updateHeader() {
-  const p = state.profile;
-  document.getElementById('header-pseudo').textContent = p ? p.nickname : 'Mon joueur';
-  document.getElementById('avatar-initials').textContent = p ? (p.firstName[0] + p.lastName[0]).toUpperCase() : '';
-  document.getElementById('avatar-initials').hidden = !p;
-  document.getElementById('avatar-icon').toggleAttribute('hidden', Boolean(p));
-  document.getElementById('header-theme-icon').setAttribute('href', '#i-' + (state.settings.theme === 'dark' ? 'sun' : 'moon'));
+  if (joueur) {
+    document.getElementById('header-pseudo').textContent = joueur.pseudo;
+    document.getElementById('avatar-initials').textContent = (joueur.prenom[0] + joueur.nom[0]).toUpperCase();
+    document.getElementById('avatar-initials').hidden = false;
+    document.getElementById('avatar-icon').setAttribute('hidden', '');   // l'icône est un SVG : setAttribute
+  } else {
+    document.getElementById('header-pseudo').textContent = 'Mon joueur';
+    document.getElementById('avatar-initials').hidden = true;
+    document.getElementById('avatar-icon').removeAttribute('hidden');
+  }
+  if (mode === 'dark') {
+    document.getElementById('header-theme-icon').setAttribute('href', '#i-sun');
+  } else {
+    document.getElementById('header-theme-icon').setAttribute('href', '#i-moon');
+  }
 }
 
 // Accueil (index.html) : inscription OU carte du joueur, et état des 3 missions.
 function updateHome() {
-  const p = state.profile;
-  document.getElementById('hero-eyebrow').textContent = p ? 'BIENVENUE SUR LE TERRAIN, ' + p.nickname : 'LE COUP D’ENVOI DE TON HISTOIRE';
-  document.getElementById('registration').hidden = Boolean(p);
-  document.getElementById('player-home').hidden = !p;
-  const percent = Math.round(completedCount() / NB_MISSIONS * 100);
-  if (p) {
-    document.getElementById('player-title').textContent = 'BIENVENUE, ' + p.nickname + '.';
-    document.getElementById('player-identity').textContent = p.firstName + ' ' + p.lastName + ' · ' + p.age + ' ans';
+  if (joueur) {
+    const pourcentage = Math.round(completedCount() / 3 * 100);
+    document.getElementById('hero-eyebrow').textContent = 'BIENVENUE SUR LE TERRAIN, ' + joueur.pseudo;
+    document.getElementById('registration').hidden = true;
+    document.getElementById('player-home').hidden = false;
+    document.getElementById('player-title').textContent = 'BIENVENUE, ' + joueur.pseudo + '.';
+    document.getElementById('player-identity').textContent = joueur.prenom + ' ' + joueur.nom + ' · ' + joueur.age + ' ans';
     document.getElementById('player-missions').textContent = completedCount();
-    document.getElementById('player-percent').textContent = percent;
-    document.getElementById('player-bar').className = 'pct-' + Math.round(percent / 10) * 10;
+    document.getElementById('player-percent').textContent = pourcentage;
+    // Barre de progression : classe pct-0, pct-10 ... pct-100 (la largeur est dans le CSS).
+    document.getElementById('player-bar').className = 'pct-' + Math.round(pourcentage / 10) * 10;
+  } else {
+    document.getElementById('hero-eyebrow').textContent = 'LE COUP D’ENVOI DE TON HISTOIRE';
+    document.getElementById('registration').hidden = false;
+    document.getElementById('player-home').hidden = true;
   }
-  // Cartes des missions : verrouillée, ouverte ou terminée
-  for (let i = 0; i < NB_MISSIONS; i++) {
-    const done = state.missions[i].completed;
-    const open = canAccessMission(i);
-    document.getElementById('carte-mission-' + i).className = 'mission-card ' + (done ? 'complete' : open ? 'available' : 'locked');
-    document.getElementById('carte-mission-' + i + '-icone').setAttribute('href', '#i-' + (done ? 'check' : open ? 'play' : 'lock'));
-    document.getElementById('carte-mission-' + i + '-fleche').setAttribute('href', '#i-' + (done ? 'check' : open ? 'arrow' : 'lock'));
-    document.getElementById('carte-mission-' + i + '-texte').textContent = done ? 'Mission accomplie' : open ? 'Le coup d’envoi t’attend' : 'Chaque chose en son temps';
+
+  // Les 3 cartes de mission : terminée, ouverte ou verrouillée.
+  for (let i = 0; i < 3; i++) {
+    const carte = document.getElementById('carte-mission-' + i);
+    const icone = document.getElementById('carte-mission-' + i + '-icone');
+    const fleche = document.getElementById('carte-mission-' + i + '-fleche');
+    const texte = document.getElementById('carte-mission-' + i + '-texte');
+    if (missionsTerminees[i]) {
+      carte.className = 'mission-card complete';
+      icone.setAttribute('href', '#i-check');
+      fleche.setAttribute('href', '#i-check');
+      texte.textContent = 'Mission accomplie';
+    } else if (canAccessMission(i)) {
+      carte.className = 'mission-card available';
+      icone.setAttribute('href', '#i-play');
+      fleche.setAttribute('href', '#i-arrow');
+      texte.textContent = 'Le coup d’envoi t’attend';
+    } else {
+      carte.className = 'mission-card locked';
+      icone.setAttribute('href', '#i-lock');
+      fleche.setAttribute('href', '#i-lock');
+      texte.textContent = 'Chaque chose en son temps';
+    }
   }
 }
 
 // Paramètres (parametres.html).
 function updateSettings() {
-  const p = state.profile;
-  document.getElementById('info-firstName').textContent = p.firstName;
-  document.getElementById('info-lastName').textContent = p.lastName;
-  document.getElementById('info-nickname').textContent = p.nickname;
-  document.getElementById('info-age').textContent = p.age;
+  document.getElementById('info-firstName').textContent = joueur.prenom;
+  document.getElementById('info-lastName').textContent = joueur.nom;
+  document.getElementById('info-nickname').textContent = joueur.pseudo;
+  document.getElementById('info-age').textContent = joueur.age;
   updateLocation();
-  document.getElementById('theme-dark').classList.toggle('active', state.settings.theme === 'dark');
-  document.getElementById('theme-light').classList.toggle('active', state.settings.theme === 'light');
-  document.getElementById('brightness-range').value = state.settings.brightness;
-  document.getElementById('brightness-value').textContent = state.settings.brightness + ' %';
+  if (mode === 'dark') {
+    document.getElementById('theme-dark').classList.add('active');
+    document.getElementById('theme-light').classList.remove('active');
+  } else {
+    document.getElementById('theme-light').classList.add('active');
+    document.getElementById('theme-dark').classList.remove('active');
+  }
+  document.getElementById('brightness-range').value = luminosite;
+  document.getElementById('brightness-value').textContent = luminosite + ' %';
   updateStoredData();
 }
 
 // Thème, luminosité et volume.
 function applySettings() {
-  document.documentElement.dataset.theme = state.settings.theme;            // <html data-theme="light">
-  document.documentElement.dataset.brightness = state.settings.brightness;  // <html data-brightness="90">
-  document.getElementById('musique').volume = state.settings.volume;        // volume de <audio> (0 à 1)
+  document.documentElement.dataset.theme = mode;                // <html data-theme="light">
+  document.documentElement.dataset.brightness = luminosite;     // <html data-brightness="90">
+  document.getElementById('musique').volume = volume;           // volume de <audio> (0 à 1)
 }
 
+
 /* ==========================================================================
-   5. ACCÈS AUX PAGES
+   7. ACCÈS AUX PAGES
    On change de page avec de simples liens <a href="quiz.html">.
    Le JS vérifie seulement que le joueur a le droit d'ouvrir la page.
    ========================================================================== */
-// Au chargement d'une page autre que l'accueil : il faut un joueur inscrit,
-// et une mission doit être débloquée. Sinon, retour à l'accueil.
+// Au chargement : il faut un joueur inscrit, et une mission doit être débloquée.
+// Sinon, retour à l'accueil (replace : la page refusée ne reste pas dans l'historique).
 function checkAccess() {
-  if (PAGE === 'home') return true;
-  if (!state.profile) {
+  if (PAGE === 'home') {
+    return true;
+  }
+  if (!joueur) {
     location.replace('index.html#registration');   // directement sur le formulaire
     return false;
   }
@@ -267,53 +377,99 @@ function askRegistration() {
 
 // « Commencer mon voyage » : première mission pas encore terminée, sinon le quiz.
 function startJourney() {
-  if (!state.profile) {
+  if (!joueur) {
     askRegistration();
     return;
   }
-  const next = state.missions.findIndex(m => !m.completed);
-  if (next === -1) location.href = 'quiz.html';
-  else location.href = 'mission' + (next + 1) + '.html';
+  for (let i = 0; i < 3; i++) {
+    if (!missionsTerminees[i]) {
+      location.href = 'mission' + (i + 1) + '.html';
+      return;
+    }
+  }
+  location.href = 'quiz.html';
 }
 
-function toggleMenu(open) {
-  document.getElementById('primary-nav').classList.toggle('open', open);
-  document.getElementById('menu-icon').setAttribute('href', '#i-' + (open ? 'close' : 'menu'));
+// Menu sur téléphone : ouvrir ou fermer.
+function toggleMenu() {
+  const menu = document.getElementById('primary-nav');
+  if (menu.classList.contains('open')) {
+    menu.classList.remove('open');
+    document.getElementById('menu-icon').setAttribute('href', '#i-menu');
+  } else {
+    menu.classList.add('open');
+    document.getElementById('menu-icon').setAttribute('href', '#i-close');
+  }
 }
+
 
 /* ==========================================================================
-   6. INSCRIPTION DU JOUEUR
+   8. INSCRIPTION DU JOUEUR (index.html)
    ========================================================================== */
-function submitProfile(form) {
-  const checked = validateProfile(Object.fromEntries(new FormData(form).entries()));
-  ['firstName', 'lastName', 'nickname', 'age'].forEach(name => {
-    document.getElementById('register-' + name + '-error').textContent = checked.errors[name] || '';
-  });
-  document.getElementById('register-summary').hidden = checked.valid;
-  if (!checked.valid) {
-    document.getElementById('register-summary').textContent = 'Encore un petit effort : vérifie les champs indiqués.';
-    document.getElementById('register-' + Object.keys(checked.errors)[0]).focus();
+function submitProfile() {
+  // 1. Lire les 4 champs du formulaire.
+  const prenom = document.getElementById('register-firstName').value.trim();
+  const nom = document.getElementById('register-lastName').value.trim();
+  const pseudo = document.getElementById('register-nickname').value.trim();
+  const age = Number(document.getElementById('register-age').value);
+
+  // 2. Afficher le message d'erreur sous chaque champ ('' = pas d'erreur).
+  const erreurs = checkProfile(prenom, nom, pseudo, age);
+  document.getElementById('register-firstName-error').textContent = erreurs.prenom;
+  document.getElementById('register-lastName-error').textContent = erreurs.nom;
+  document.getElementById('register-nickname-error').textContent = erreurs.pseudo;
+  document.getElementById('register-age-error').textContent = erreurs.age;
+
+  // 3. S'il y a une erreur : message général et curseur dans le premier champ faux.
+  const resume = document.getElementById('register-summary');
+  if (!profileIsValid(erreurs)) {
+    resume.hidden = false;
+    resume.textContent = 'Encore un petit effort : vérifie les champs indiqués.';
+    if (erreurs.prenom !== '') {
+      document.getElementById('register-firstName').focus();
+    } else if (erreurs.nom !== '') {
+      document.getElementById('register-lastName').focus();
+    } else if (erreurs.pseudo !== '') {
+      document.getElementById('register-nickname').focus();
+    } else {
+      document.getElementById('register-age').focus();
+    }
     return;
   }
-  state.profile = checked.profile;
+
+  // 4. Tout est correct : on crée le joueur et on l'enregistre.
+  resume.hidden = true;
+  joueur = { prenom: prenom, nom: nom, pseudo: pseudo, age: age };
   persist();
   refreshAll();
   window.scrollTo(0, 0);
-  notify('Bienvenue ' + state.profile.nickname + ' ! Ton maillot est prêt.', 'success');
+  notify('Bienvenue ' + joueur.pseudo + ' ! Ton maillot est prêt.', 'success');
 }
 
+
 /* ==========================================================================
-   7. CARTE INTERACTIVE DES STADES
+   9. CARTE INTERACTIVE DES STADES (index.html)
    ========================================================================== */
-// Clic sur un point : on l'allume et on affiche la fiche du stade (les fiches sont écrites dans index.html).
+// Clic sur un point : on l'allume et on affiche la fiche du stade (les fiches sont dans index.html).
 function showStadium(id) {
-  Array.from(document.getElementsByClassName('map-marker')).forEach(marker => marker.classList.toggle('active', marker.dataset.stadium === id));
-  Array.from(document.getElementsByClassName('map-fiche')).forEach(fiche => { fiche.hidden = fiche.id !== 'fiche-' + id; });
+  const points = document.getElementsByClassName('map-marker');
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].dataset.stadium === id) {
+      points[i].classList.add('active');
+    } else {
+      points[i].classList.remove('active');
+    }
+  }
+  const fiches = document.getElementsByClassName('map-fiche');
+  for (let i = 0; i < fiches.length; i++) {
+    fiches[i].hidden = (fiches[i].id !== 'fiche-' + id);
+  }
 }
 
+
 /* ==========================================================================
-   8. MISSIONS : DRAG & DROP (méthode du cours)
-   Étape 1 : élément draggable="true" (dans index.html) + écouteur dragstart.
+   10. MISSIONS : DRAG & DROP (méthode du cours)
+   Étape 1 : élément draggable="true" (dans le HTML) + écouteur dragstart.
    Étape 2 : dragstart garde l'id de l'élément avec dataTransfer.setData().
    Étape 3 : la zone autorise le dépôt avec dragover + preventDefault().
    Étape 4 : drop récupère l'id avec getData(), retrouve l'élément avec
@@ -328,7 +484,10 @@ function drag(ev) {
 // Fin du déplacement (réussi ou non).
 function finDrag(ev) {
   ev.target.classList.remove('dragging');
-  Array.from(document.getElementsByClassName('drag-over')).forEach(zone => zone.classList.remove('drag-over'));
+  const zones = document.getElementsByClassName('drop-zone');
+  for (let i = 0; i < zones.length; i++) {
+    zones[i].classList.remove('drag-over');
+  }
   removeDragData(ev);
 }
 
@@ -342,148 +501,240 @@ function allowDrop(ev) {
 }
 
 // Étape 4
-function drop(ev, container) {
+function drop(ev) {
   ev.preventDefault();
-  container.classList.remove('drag-over');
+  const zone = ev.currentTarget;   // la zone qui reçoit l'élément
+  zone.classList.remove('drag-over');
   const id = ev.dataTransfer.getData('text/plain');
-  const draggedElement = document.getElementById(id);
-  if (draggedElement) verifierDepot(draggedElement, container);
+  const element = document.getElementById(id);
+  if (element) {
+    verifierDepot(element, zone);
+  }
 }
 
-// Les éléments et les zones sont déjà dans le HTML : on ajoute les écouteurs une seule fois.
+// Surbrillance de la zone survolée.
+function entrerZone(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.add('drag-over');
+}
+
+function quitterZone(ev) {
+  ev.currentTarget.classList.remove('drag-over');
+}
+
+// Les éléments et les zones sont déjà dans le HTML : on leur ajoute les écouteurs.
 function activerDragAndDrop() {
-  Array.from(document.getElementsByClassName('drag-item')).forEach(item => {
-    item.addEventListener('dragstart', drag);
-    item.addEventListener('dragend', finDrag);
-  });
-  Array.from(document.getElementsByClassName('drop-zone')).forEach(container => {
-    container.addEventListener('dragenter', ev => { ev.preventDefault(); container.classList.add('drag-over'); });
-    container.addEventListener('dragover', allowDrop);
-    container.addEventListener('dragleave', () => container.classList.remove('drag-over'));
-    container.addEventListener('drop', ev => drop(ev, container));
-  });
+  const elements = document.getElementsByClassName('drag-item');
+  for (let i = 0; i < elements.length; i++) {
+    elements[i].addEventListener('dragstart', drag);
+    elements[i].addEventListener('dragend', finDrag);
+  }
+  const zones = document.getElementsByClassName('drop-zone');
+  for (let i = 0; i < zones.length; i++) {
+    zones[i].addEventListener('dragenter', entrerZone);
+    zones[i].addEventListener('dragover', allowDrop);
+    zones[i].addEventListener('dragleave', quitterZone);
+    zones[i].addEventListener('drop', drop);
+  }
 }
 
-// Bonne zone : l'élément devient un fils de la zone (appendChild) et ne se déplace plus.
-function placeItem(item) {
-  document.getElementById('answers-' + item.dataset.cible).appendChild(item);
-  item.setAttribute('draggable', 'false');
-  item.classList.add('placed');
+// Bonne zone : l'élément devient un enfant de la zone (appendChild) et ne se déplace plus.
+function placeItem(element) {
+  document.getElementById('answers-' + element.dataset.cible).appendChild(element);
+  element.setAttribute('draggable', 'false');
+  element.classList.add('placed');
 }
 
-function setFeedback(mission, type, message) {
-  document.getElementById('feedback-' + mission).className = 'feedback ' + type;
-  document.getElementById('feedback-' + mission + '-icone').setAttribute('href', '#i-' + (type === 'success' ? 'check-circle' : 'info'));
-  document.getElementById('feedback-' + mission + '-texte').textContent = message;
+// Message sous les zones : vert (« success ») ou rouge (« error »).
+function setFeedback(type, message) {
+  document.getElementById('feedback-' + MISSION).className = 'feedback ' + type;
+  if (type === 'success') {
+    document.getElementById('feedback-' + MISSION + '-icone').setAttribute('href', '#i-check-circle');
+  } else {
+    document.getElementById('feedback-' + MISSION + '-icone').setAttribute('href', '#i-info');
+  }
+  document.getElementById('feedback-' + MISSION + '-texte').textContent = message;
 }
 
 // Vérifie le dépôt : « Bravo ! » ou message d'erreur qui explique la bonne réponse.
-function verifierDepot(item, zone) {
-  if (item.getAttribute('draggable') !== 'true') return;   // élément déjà placé
-  Array.from(document.getElementsByClassName('drop-zone')).forEach(z => z.classList.remove('is-error'));
-  if (item.dataset.cible !== zone.id.replace('zone-', '')) {
+function verifierDepot(element, zone) {
+  if (element.getAttribute('draggable') !== 'true') {
+    return;   // élément déjà placé
+  }
+  const zones = document.getElementsByClassName('drop-zone');
+  for (let i = 0; i < zones.length; i++) {
+    zones[i].classList.remove('is-error');
+  }
+  // La bonne zone de l'élément est écrite dans son attribut data-cible.
+  if ('zone-' + element.dataset.cible !== zone.id) {
     zone.classList.add('is-error');
-    setFeedback(MISSION, 'error', item.dataset.erreur + ' ' + item.dataset.explication + ' Réessaie !');
+    setFeedback('error', element.dataset.erreur + ' ' + element.dataset.explication + ' Réessaie !');
     return;
   }
-  placeItem(item);
-  state.missions[MISSION].placed.push(item.id);
+  placeItem(element);
+  missionsPlacees[MISSION].push(element.id);
   persist();
-  setFeedback(MISSION, 'success', 'Bravo ! ' + item.dataset.explication);
-  updateMission(MISSION);
+  setFeedback('success', 'Bravo ! ' + element.dataset.explication);
+  updateMission();
 }
 
-// Compteur, zones pleines et boutons d'une mission.
-function updateMission(mission) {
-  const page = document.getElementById('page-mission-' + mission);
-  const items = Array.from(page.getElementsByClassName('drag-item'));
-  const placed = items.filter(item => item.classList.contains('placed')).length;
-  const done = state.missions[mission].completed;
-  document.getElementById('compteur-' + mission).textContent = placed;
-  Array.from(page.getElementsByClassName('drop-zone')).forEach(zone => {
-    const cible = zone.id.replace('zone-', '');
-    const expected = items.filter(item => item.dataset.cible === cible).length;
-    const inside = document.getElementById('answers-' + cible).children.length;
-    zone.classList.toggle('is-full', inside === expected);
-    if (document.getElementById('nombre-' + cible)) document.getElementById('nombre-' + cible).textContent = inside;
-  });
-  document.getElementById('terminer-' + mission).hidden = done;
-  document.getElementById('terminer-' + mission).disabled = placed < items.length;
-  document.getElementById('suivant-' + mission).hidden = !done;
-  document.getElementById('aide-' + mission).textContent = placed < items.length
-    ? 'Fais glisser chaque élément avec la souris et lâche-le dans la bonne zone.'
-    : 'Toutes les associations sont correctes. ' + (done ? 'Tu peux continuer ton parcours.' : 'Valide maintenant ta mission pour débloquer la suite.');
-  document.getElementById('bas-' + mission).textContent = done ? 'Mission déjà terminée.' : 'Place tous les éléments pour terminer la mission.';
+// Compteur, zones pleines, boutons et textes de la mission ouverte.
+function updateMission() {
+  const elements = document.getElementsByClassName('drag-item');
+  let places = 0;
+  for (let i = 0; i < elements.length; i++) {
+    if (elements[i].classList.contains('placed')) {
+      places = places + 1;
+    }
+  }
+  const tousPlaces = (places === elements.length);
+  const terminee = missionsTerminees[MISSION];
+  document.getElementById('compteur-' + MISSION).textContent = places;
+
+  // Chaque zone : combien d'éléments attendus, combien déjà dedans.
+  const zones = document.getElementsByClassName('drop-zone');
+  for (let i = 0; i < zones.length; i++) {
+    const cible = zones[i].id.replace('zone-', '');
+    let attendus = 0;
+    for (let j = 0; j < elements.length; j++) {
+      if (elements[j].dataset.cible === cible) {
+        attendus = attendus + 1;
+      }
+    }
+    const dedans = document.getElementById('answers-' + cible).children.length;
+    if (dedans === attendus) {
+      zones[i].classList.add('is-full');
+    } else {
+      zones[i].classList.remove('is-full');
+    }
+    // Compteur « 0/3 » des vestiaires (mission 2 seulement).
+    const nombre = document.getElementById('nombre-' + cible);
+    if (nombre) {
+      nombre.textContent = dedans;
+    }
+  }
+
+  // Boutons : « Terminer » cliquable quand tout est placé, « Suivant » quand la mission est terminée.
+  document.getElementById('terminer-' + MISSION).hidden = terminee;
+  document.getElementById('terminer-' + MISSION).disabled = !tousPlaces;
+  document.getElementById('suivant-' + MISSION).hidden = !terminee;
+
+  // Textes d'aide.
+  const aide = document.getElementById('aide-' + MISSION);
+  if (!tousPlaces) {
+    aide.textContent = 'Fais glisser chaque élément avec la souris et lâche-le dans la bonne zone.';
+  } else if (terminee) {
+    aide.textContent = 'Toutes les associations sont correctes. Tu peux continuer ton parcours.';
+  } else {
+    aide.textContent = 'Toutes les associations sont correctes. Valide maintenant ta mission pour débloquer la suite.';
+  }
+  if (terminee) {
+    document.getElementById('bas-' + MISSION).textContent = 'Mission déjà terminée.';
+  } else {
+    document.getElementById('bas-' + MISSION).textContent = 'Place tous les éléments pour terminer la mission.';
+  }
 }
 
-// Le bouton « Terminer » n'est cliquable que si tous les éléments sont placés.
-function finishMission(mission) {
-  state.missions[mission].completed = true;
+// Bouton « Terminer la mission » (cliquable seulement quand tout est placé).
+function finishMission() {
+  missionsTerminees[MISSION] = true;
   persist();
-  const next = mission === NB_MISSIONS - 1 ? 'Les trois missions sont terminées : place au quiz final !' : 'La mission suivante est débloquée.';
-  setFeedback(mission, 'success', 'Mission accomplie ! Bravo ' + state.profile.nickname + '. ' + next);
+  if (MISSION === 2) {
+    setFeedback('success', 'Mission accomplie ! Bravo ' + joueur.pseudo + '. Les trois missions sont terminées : place au quiz final !');
+  } else {
+    setFeedback('success', 'Mission accomplie ! Bravo ' + joueur.pseudo + '. La mission suivante est débloquée.');
+  }
   refreshAll();
 }
 
-// Au chargement d'une page de mission : on remet dans leur zone les éléments déjà bien placés.
-function restoreMission(mission) {
-  state.missions[mission].placed.forEach(id => {
-    const item = document.getElementById(id);
-    if (item) placeItem(item);
-  });
-  if (state.missions[mission].completed) setFeedback(mission, 'success', 'Mission accomplie ! Ta progression est enregistrée.');
+// Au chargement : on remet dans leur zone les éléments déjà bien placés.
+function restoreMission() {
+  const ids = missionsPlacees[MISSION];
+  for (let i = 0; i < ids.length; i++) {
+    const element = document.getElementById(ids[i]);
+    if (element) {
+      placeItem(element);
+    }
+  }
+  if (missionsTerminees[MISSION]) {
+    setFeedback('success', 'Mission accomplie ! Ta progression est enregistrée.');
+  }
 }
 
+
 /* ==========================================================================
-   9. QUIZ FINAL (score dans le sessionStorage)
+   11. QUIZ FINAL (quiz.html) — score aussi dans le sessionStorage
    ========================================================================== */
-let quizIndex = 0;
-let quizAnswers = [];
+let question = 0;      // numéro de la question affichée (0 à 9)
+let reponses = [];     // réponse choisie pour chaque question
 
 // À l'ouverture : le résultat s'il existe déjà, sinon la première question.
 function openQuiz() {
-  if (state.quiz.lastScore !== null) showQuizResult();
-  else startQuiz();
+  if (dernierScoreQuiz !== null) {
+    showQuizResult();
+  } else {
+    startQuiz();
+  }
 }
 
 function startQuiz() {
-  quizIndex = 0;
-  quizAnswers = [];
-  Array.from(document.getElementsByClassName('quiz-option')).forEach(button => button.classList.remove('selected'));
+  question = 0;
+  reponses = [];
+  const options = document.getElementsByClassName('quiz-option');
+  for (let i = 0; i < options.length; i++) {
+    options[i].classList.remove('selected');
+  }
   document.getElementById('quiz-game').hidden = false;
   document.getElementById('quiz-result').hidden = true;
   showQuestion();
 }
 
+// Affiche seulement la question en cours.
 function showQuestion() {
-  for (let i = 0; i < 10; i++) document.getElementById('question-' + i).hidden = i !== quizIndex;
-  document.getElementById('quiz-step').textContent = 'QUESTION ' + (quizIndex + 1) + ' SUR 10';
-  document.getElementById('quiz-percent').textContent = (quizIndex + 1) * 10 + ' %';
-  document.getElementById('quiz-bar').className = 'pct-' + (quizIndex + 1) * 10;
-  document.getElementById('quiz-next').disabled = quizAnswers[quizIndex] === undefined;
-  document.getElementById('quiz-next-label').textContent = quizIndex === 9 ? 'DÉCOUVRIR MON SCORE' : 'QUESTION SUIVANTE';
+  for (let i = 0; i < 10; i++) {
+    document.getElementById('question-' + i).hidden = (i !== question);
+  }
+  document.getElementById('quiz-step').textContent = 'QUESTION ' + (question + 1) + ' SUR 10';
+  document.getElementById('quiz-percent').textContent = (question + 1) * 10 + ' %';
+  document.getElementById('quiz-bar').className = 'pct-' + (question + 1) * 10;
+  // « Suivant » est désactivé tant qu'aucune réponse n'est choisie.
+  document.getElementById('quiz-next').disabled = (reponses[question] === undefined);
+  if (question === 9) {
+    document.getElementById('quiz-next-label').textContent = 'DÉCOUVRIR MON SCORE';
+  } else {
+    document.getElementById('quiz-next-label').textContent = 'QUESTION SUIVANTE';
+  }
 }
 
-// Seule la question en cours est visible : on ne peut cliquer que sur ses réponses.
-function chooseQuizAnswer(button) {
-  quizAnswers[quizIndex] = Number(button.dataset.quizOption);
-  Array.from(document.getElementById('question-' + quizIndex).getElementsByClassName('quiz-option')).forEach(b => b.classList.toggle('selected', b === button));
+// Clic sur une réponse : on la retient et on l'allume.
+function chooseQuizAnswer(bouton) {
+  reponses[question] = Number(bouton.dataset.quizOption);
+  const options = document.getElementById('question-' + question).getElementsByClassName('quiz-option');
+  for (let i = 0; i < options.length; i++) {
+    options[i].classList.remove('selected');
+  }
+  bouton.classList.add('selected');
   document.getElementById('quiz-next').disabled = false;
 }
 
-// Le bouton « Suivant » n'est cliquable qu'après avoir choisi une réponse.
+// Bouton « Suivant » : question suivante, ou calcul du score après la 10e.
 function advanceQuiz() {
-  if (quizIndex < 9) {
-    quizIndex++;
+  if (question < 9) {
+    question = question + 1;
     showQuestion();
     return;
   }
-  const score = quizAnswers.filter((answer, i) => answer === BONNES_REPONSES[i]).length;
-  state.quiz.lastScore = score;
+  let score = 0;
+  for (let i = 0; i < 10; i++) {
+    if (reponses[i] === BONNES_REPONSES[i]) {
+      score = score + 1;
+    }
+  }
+  dernierScoreQuiz = score;
   // Score du quiz dans le sessionStorage (cours : sessionStorage.setItem("score", 120)).
   if (storageSupported()) {
     sessionStorage.setItem('scoreQuiz', score * 10);
-    sessionStorage.setItem('pseudoQuiz', state.profile.nickname);
+    sessionStorage.setItem('pseudoQuiz', joueur.pseudo);
   }
   persist();
   showQuizResult();
@@ -491,89 +742,190 @@ function advanceQuiz() {
 }
 
 function showQuizResult() {
-  const score = state.quiz.lastScore;
+  const score = dernierScoreQuiz;
   document.getElementById('quiz-game').hidden = true;
   document.getElementById('quiz-result').hidden = false;
-  document.getElementById('result-title-good').hidden = score < 8;
-  document.getElementById('result-title-work').hidden = score >= 8;
+  // Titre : « légende » à partir de 8/10, sinon « le talent se travaille ».
+  if (score >= 8) {
+    document.getElementById('result-title-good').hidden = false;
+    document.getElementById('result-title-work').hidden = true;
+  } else {
+    document.getElementById('result-title-good').hidden = true;
+    document.getElementById('result-title-work').hidden = false;
+  }
   document.getElementById('result-score').textContent = score;
+  // Anneau SVG : 339.3 = tour complet du cercle.
   document.getElementById('result-ring').setAttribute('stroke-dashoffset', 339.3 * (1 - score / 10));
   // Message demandé par le sujet : « Bravo [pseudo], tu as réussi [X]% de ta mission ! »
-  document.getElementById('result-message').textContent = 'Bravo ' + state.profile.nickname + ', tu as réussi ' + score * 10 + '% de ta mission !';
+  document.getElementById('result-message').textContent = 'Bravo ' + joueur.pseudo + ', tu as réussi ' + score * 10 + '% de ta mission !';
 }
+
 
 /* ==========================================================================
-   10. JEU DU PENDU
+   12. JEU DU PENDU (pendu.html)
    ========================================================================== */
-let word = '';
-let guesses = [];
+let mot = '';          // mot à trouver
+let lettres = [];      // lettres déjà proposées
 
-function hangmanStatus() {
-  const errors = guesses.filter(letter => !word.includes(letter)).length;
-  const won = word.split('').every(letter => guesses.includes(letter));
-  return { errors, won, lost: errors >= 6 && !won, finished: won || errors >= 6 };
+// Nombre de lettres proposées qui ne sont pas dans le mot.
+function countErrors() {
+  let erreurs = 0;
+  for (let i = 0; i < lettres.length; i++) {
+    if (!mot.includes(lettres[i])) {
+      erreurs = erreurs + 1;
+    }
+  }
+  return erreurs;
 }
 
+// Gagné quand toutes les lettres du mot ont été proposées.
+function isWon() {
+  for (let i = 0; i < mot.length; i++) {
+    if (!lettres.includes(mot[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// Nouvelle partie avec un mot différent du précédent.
 function newHangmanGame() {
-  const choices = MOTS.filter(m => m !== word);
-  word = choices[Math.floor(Math.random() * choices.length)];
-  guesses = [];
-  Array.from(document.getElementsByClassName('letter-key')).forEach(key => {
-    key.disabled = false;
-    key.classList.remove('good', 'bad');
-  });
+  let nouveau = mot;
+  while (nouveau === mot) {
+    nouveau = MOTS[Math.floor(Math.random() * MOTS.length)];
+  }
+  mot = nouveau;
+  lettres = [];
+  const touches = document.getElementsByClassName('letter-key');
+  for (let i = 0; i < touches.length; i++) {
+    touches[i].disabled = false;
+    touches[i].classList.remove('good');
+    touches[i].classList.remove('bad');
+  }
   updateHangman();
 }
 
-// Une lettre déjà jouée, ou une partie terminée, a ses boutons désactivés : pas besoin de le vérifier.
-function guessLetter(key) {
-  const letter = key.dataset.letter;
-  guesses.push(letter);
-  key.disabled = true;
-  key.classList.add(word.includes(letter) ? 'good' : 'bad');
-  const after = hangmanStatus();
-  if (after.finished) {
+// Clic sur une lettre (une lettre déjà jouée est désactivée, on ne peut pas la recliquer).
+function guessLetter(touche) {
+  const lettre = touche.dataset.letter;
+  lettres.push(lettre);
+  touche.disabled = true;
+  if (mot.includes(lettre)) {
+    touche.classList.add('good');
+  } else {
+    touche.classList.add('bad');
+  }
+
+  const gagne = isWon();
+  const perdu = countErrors() >= 6;
+  if (gagne || perdu) {
     // Dernier résultat enregistré directement dans le localStorage (setItem du cours).
     if (storageSupported()) {
-      localStorage.setItem('dernierResultatPendu', after.won ? 'gagné' : 'perdu');
-      localStorage.setItem('dernierScorePendu', after.errors);
-      localStorage.setItem('dernierMotPendu', word);
+      if (gagne) {
+        localStorage.setItem('dernierResultatPendu', 'gagné');
+      } else {
+        localStorage.setItem('dernierResultatPendu', 'perdu');
+      }
+      localStorage.setItem('dernierScorePendu', countErrors());
+      localStorage.setItem('dernierMotPendu', mot);
     }
-    notify(after.won ? 'Bravo ' + state.profile.nickname + ' !' : 'Perdu ! Le mot était : ' + word, after.won ? 'success' : 'info');
+    if (gagne) {
+      notify('Bravo ' + joueur.pseudo + ' !', 'success');
+    } else {
+      notify('Perdu ! Le mot était : ' + mot);
+    }
   }
   updateHangman();
 }
 
 function updateHangman() {
-  const status = hangmanStatus();
-  document.getElementById('attempts-left').textContent = 6 - status.errors;
-  document.getElementById('errors-count').textContent = status.errors;
-  Array.from(document.getElementById('error-dots').children).forEach((dot, i) => dot.classList.toggle('used', i < status.errors));
-  // Une partie du bonhomme par erreur.
-  Array.from(document.getElementById('gallows').getElementsByClassName('person')).forEach((part, i) => part.toggleAttribute('hidden', i >= status.errors));
-  // Une case par lettre du mot : « _ » tant que la lettre n'est pas trouvée.
-  Array.from(document.getElementById('word-slots').children).forEach((slot, i) => {
-    const letter = word[i];
-    slot.hidden = !letter;
-    if (!letter) return;
-    const found = guesses.includes(letter);
-    slot.textContent = found || status.finished ? letter : '_';
-    slot.className = 'word-slot' + (found ? ' revealed' : status.lost ? ' missed' : '');
-  });
-  if (status.finished) Array.from(document.getElementsByClassName('letter-key')).forEach(key => { key.disabled = true; });
-  document.getElementById('hangman-message').className = 'hangman-message' + (status.won ? ' won' : status.lost ? ' lost' : '');
-  document.getElementById('hangman-title').textContent = status.won ? 'Bravo ' + state.profile.nickname + ' !' : status.lost ? 'Perdu ! Le mot était : ' + word : '';
-  document.getElementById('hangman-text').textContent = status.won ? 'Tu as trouvé ' + word + '.'
-    : status.lost ? 'Clique sur Rejouer pour prendre ta revanche.'
-    : 'Un indice : ' + word.length + ' lettres, une seule passion. Les lettres déjà proposées sont désactivées.';
-  document.getElementById('hangman-replay').className = 'button' + (status.finished ? '' : ' secondary');
+  const erreurs = countErrors();
+  const gagne = isWon();
+  const perdu = (erreurs >= 6);
+  const fini = (gagne || perdu);
+
+  document.getElementById('attempts-left').textContent = 6 - erreurs;
+  document.getElementById('errors-count').textContent = erreurs;
+
+  // Les 6 petits points : un point « used » par erreur.
+  const points = document.getElementById('error-dots').children;
+  for (let i = 0; i < points.length; i++) {
+    if (i < erreurs) {
+      points[i].classList.add('used');
+    } else {
+      points[i].classList.remove('used');
+    }
+  }
+
+  // Le bonhomme : une partie de plus par erreur (éléments SVG : setAttribute / removeAttribute).
+  const parties = document.getElementById('gallows').getElementsByClassName('person');
+  for (let i = 0; i < parties.length; i++) {
+    if (i < erreurs) {
+      parties[i].removeAttribute('hidden');
+    } else {
+      parties[i].setAttribute('hidden', '');
+    }
+  }
+
+  // Les cases du mot : « _ » tant que la lettre n'est pas trouvée.
+  const cases = document.getElementById('word-slots').children;
+  for (let i = 0; i < cases.length; i++) {
+    if (i >= mot.length) {
+      cases[i].hidden = true;      // case en trop pour ce mot
+    } else {
+      cases[i].hidden = false;
+      const trouvee = lettres.includes(mot[i]);
+      if (trouvee) {
+        cases[i].textContent = mot[i];
+        cases[i].className = 'word-slot revealed';
+      } else if (fini) {
+        cases[i].textContent = mot[i];
+        cases[i].className = 'word-slot missed';
+      } else {
+        cases[i].textContent = '_';
+        cases[i].className = 'word-slot';
+      }
+    }
+  }
+
+  // Partie finie : toutes les lettres sont bloquées.
+  if (fini) {
+    const touches = document.getElementsByClassName('letter-key');
+    for (let i = 0; i < touches.length; i++) {
+      touches[i].disabled = true;
+    }
+  }
+
+  // Message sous le clavier.
+  const message = document.getElementById('hangman-message');
+  if (gagne) {
+    message.className = 'hangman-message won';
+    document.getElementById('hangman-title').textContent = 'Bravo ' + joueur.pseudo + ' !';
+    document.getElementById('hangman-text').textContent = 'Tu as trouvé ' + mot + '.';
+  } else if (perdu) {
+    message.className = 'hangman-message lost';
+    document.getElementById('hangman-title').textContent = 'Perdu ! Le mot était : ' + mot;
+    document.getElementById('hangman-text').textContent = 'Clique sur Rejouer pour prendre ta revanche.';
+  } else {
+    message.className = 'hangman-message';
+    document.getElementById('hangman-title').textContent = '';
+    document.getElementById('hangman-text').textContent = 'Un indice : ' + mot.length + ' lettres, une seule passion. Les lettres déjà proposées sont désactivées.';
+  }
+
+  // Bouton « Rejouer » mis en avant quand la partie est finie.
+  if (fini) {
+    document.getElementById('hangman-replay').className = 'button';
+  } else {
+    document.getElementById('hangman-replay').className = 'button secondary';
+  }
 }
 
+
 /* ==========================================================================
-   11. PARAMÈTRES : thème, géolocalisation, données
+   13. PARAMÈTRES (parametres.html) : thème, géolocalisation, données
    ========================================================================== */
-function setTheme(theme) {
-  state.settings.theme = theme;
+function setTheme(nouveauMode) {
+  mode = nouveauMode;
   applySettings();
   persist();
   refreshAll();
@@ -581,24 +933,28 @@ function setTheme(theme) {
 
 /* Géolocalisation (cours) : navigator.geolocation.getCurrentPosition(succès, erreur, options).
    La position n'est demandée qu'après un clic, avec l'accord de l'utilisateur. */
-let locationBusy = false;
+let rechercheEnCours = false;
 
 function showGeoMessage(message, type) {
-  locationBusy = false;
-  document.getElementById('location-output').hidden = false;
-  document.getElementById('location-output').className = 'location-output ' + type;
-  document.getElementById('location-output').textContent = message;
+  rechercheEnCours = false;
+  const sortie = document.getElementById('location-output');
+  sortie.hidden = false;
+  sortie.className = 'location-output ' + type;
+  sortie.textContent = message;
   updateLocation();
   notify(message, type);
 }
 
 function getLocation() {
-  if (locationBusy) return;
+  if (rechercheEnCours) {
+    return;
+  }
   if (navigator.geolocation) {
-    locationBusy = true;
-    document.getElementById('location-output').hidden = false;
-    document.getElementById('location-output').className = 'location-output';
-    document.getElementById('location-output').textContent = 'En attente de ton autorisation et de la position du navigateur...';
+    rechercheEnCours = true;
+    const sortie = document.getElementById('location-output');
+    sortie.hidden = false;
+    sortie.className = 'location-output';
+    sortie.textContent = 'En attente de ton autorisation et de la position du navigateur...';
     updateLocation();
     navigator.geolocation.getCurrentPosition(showPosition, showError, { maximumAge: 60000, timeout: 12000, enableHighAccuracy: false });
   } else {
@@ -606,9 +962,13 @@ function getLocation() {
   }
 }
 
-// Succès : latitude, longitude et précision (position.coords).
-function showPosition(position) {
-  state.settings.location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy };
+// Succès : latitude, longitude et précision (pos.coords).
+function showPosition(pos) {
+  position = {
+    latitude: pos.coords.latitude,
+    longitude: pos.coords.longitude,
+    precision: pos.coords.accuracy
+  };
   persist();
   showGeoMessage('Position enregistrée sur cet appareil.', 'success');
 }
@@ -631,39 +991,54 @@ function showError(error) {
 }
 
 function clearLocation() {
-  state.settings.location = null;
+  position = null;
   persist();
   showGeoMessage('Ta position a été effacée.', 'success');
 }
 
 function updateLocation() {
-  const loc = state.settings.location;
-  document.getElementById('geo-button').disabled = locationBusy;
-  document.getElementById('geo-label').textContent = locationBusy ? 'LOCALISATION EN COURS...' : loc ? 'ACTUALISER MA POSITION' : 'AUTORISER MA LOCALISATION';
-  document.getElementById('geo-clear').hidden = !loc;
-  document.getElementById('geo-coords').hidden = !loc;
-  if (loc) document.getElementById('geo-coords').textContent = 'Latitude : ' + loc.latitude.toFixed(4) + ' · Longitude : ' + loc.longitude.toFixed(4);
+  document.getElementById('geo-button').disabled = rechercheEnCours;
+  const texte = document.getElementById('geo-label');
+  if (rechercheEnCours) {
+    texte.textContent = 'LOCALISATION EN COURS...';
+  } else if (position) {
+    texte.textContent = 'ACTUALISER MA POSITION';
+  } else {
+    texte.textContent = 'AUTORISER MA LOCALISATION';
+  }
+  if (position) {
+    document.getElementById('geo-clear').hidden = false;
+    document.getElementById('geo-coords').hidden = false;
+    document.getElementById('geo-coords').textContent = 'Latitude : ' + position.latitude.toFixed(4) + ' · Longitude : ' + position.longitude.toFixed(4);
+  } else {
+    document.getElementById('geo-clear').hidden = true;
+    document.getElementById('geo-coords').hidden = true;
+  }
 }
 
-// Liste des données du localStorage, parcourue avec length et key(i) comme dans le cours (slide 12).
+// Liste des données du localStorage, parcourue avec length et key(i) comme dans le cours.
 function updateStoredData() {
-  const list = document.getElementById('stored-data');
-  list.textContent = '';
-  if (!storageSupported()) return;
+  const liste = document.getElementById('stored-data');
+  liste.textContent = '';
+  if (!storageSupported()) {
+    return;
+  }
   for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    const li = document.createElement('li');
-    const label = document.createElement('strong');
-    label.textContent = key + ' : ';
-    li.appendChild(label);
-    li.appendChild(document.createTextNode(localStorage.getItem(key)));
-    list.appendChild(li);
+    const cle = localStorage.key(i);
+    const ligne = document.createElement('li');
+    const nomCle = document.createElement('strong');
+    nomCle.textContent = cle + ' : ';
+    ligne.appendChild(nomCle);
+    ligne.appendChild(document.createTextNode(localStorage.getItem(cle)));
+    liste.appendChild(ligne);
   }
 }
 
 // Supprime tout avec localStorage.clear() et sessionStorage.clear(), puis retour à l'accueil.
 function clearAllData() {
-  if (!confirm('Supprimer ton joueur, ta progression et tes réglages de cet appareil ?')) return;
+  if (!confirm('Supprimer ton joueur, ta progression et tes réglages de cet appareil ?')) {
+    return;
+  }
   if (storageSupported()) {
     localStorage.clear();
     sessionStorage.clear();
@@ -671,77 +1046,95 @@ function clearAllData() {
   location.href = 'index.html';
 }
 
+
 /* ==========================================================================
-   12. MUSIQUE : balise <audio id="musique"> (fichier audio/road-to-glory.mp3)
+   14. MUSIQUE : balise <audio id="musique"> (fichier audio/road-to-glory.mp3)
    ========================================================================== */
 const musique = document.getElementById('musique');
 
 function toggleMusic() {
   if (musique.paused) {
-    musique.volume = state.settings.volume;
+    musique.volume = volume;
     musique.play();
   } else {
     musique.pause();
   }
 }
 
-// Les événements play / pause de la balise mettent à jour les boutons.
+// Les événements play / pause de la balise <audio> mettent à jour les icônes.
 function updateMusicButtons() {
-  const playing = !musique.paused;
-  document.getElementById('header-music-icon').setAttribute('href', '#i-' + (playing ? 'volume' : 'volume-off'));
-  Array.from(document.getElementsByClassName('js-audio-icon')).forEach(use => use.setAttribute('href', '#i-' + (playing ? 'pause' : 'play')));
+  let icone = 'play';
+  let iconeEnTete = 'volume-off';
+  if (!musique.paused) {
+    icone = 'pause';
+    iconeEnTete = 'volume';
+  }
+  document.getElementById('header-music-icon').setAttribute('href', '#i-' + iconeEnTete);
+  const icones = document.getElementsByClassName('js-audio-icon');
+  for (let i = 0; i < icones.length; i++) {
+    icones[i].setAttribute('href', '#i-' + icone);
+  }
 }
 musique.addEventListener('play', updateMusicButtons);
 musique.addEventListener('pause', updateMusicButtons);
 
+
 /* ==========================================================================
-   13. ÉCOUTEURS D'ÉVÉNEMENTS
-   Méthode du cours : element.addEventListener('click', function () { ... });
+   15. ÉCOUTEURS D'ÉVÉNEMENTS
+   Méthode du cours : element.addEventListener('click', fonction);
    Les liens <a href> du menu n'ont besoin d'aucun écouteur.
    Chaque page n'ajoute que les écouteurs de ses propres boutons.
    ========================================================================== */
 
 // ---------- Toutes les pages : en-tête, musique, message ----------
-document.getElementById('menu-button').addEventListener('click', function () {
-  const ouvert = document.getElementById('primary-nav').classList.contains('open');
-  toggleMenu(!ouvert);
-});
+document.getElementById('menu-button').addEventListener('click', toggleMenu);
+
 document.getElementById('header-theme').addEventListener('click', function () {
-  if (state.settings.theme === 'dark') setTheme('light');
-  else setTheme('dark');
+  if (mode === 'dark') {
+    setTheme('light');
+  } else {
+    setTheme('dark');
+  }
 });
+
 // Boutons de la musique (en-tête, accueil, paramètres).
-Array.from(document.getElementsByClassName('btn-musique')).forEach(function (bouton) {
-  bouton.addEventListener('click', toggleMusic);
-});
+const boutonsMusique = document.getElementsByClassName('btn-musique');
+for (let i = 0; i < boutonsMusique.length; i++) {
+  boutonsMusique[i].addEventListener('click', toggleMusic);
+}
+
 // Curseur du volume (accueil et paramètres) : événement « input » à chaque mouvement.
 const curseurVolume = document.getElementById('volume');
 if (curseurVolume) {
   curseurVolume.addEventListener('input', function () {
-    state.settings.volume = Number(curseurVolume.value) / 100;
+    volume = Number(curseurVolume.value) / 100;
     applySettings();
     persist();
     refreshAll();
   });
 }
+
 document.getElementById('toast-close').addEventListener('click', function () {
   document.getElementById('toast').classList.remove('visible');
 });
+
 // Événement storage (cours) : un AUTRE onglet du site a modifié le localStorage.
-window.addEventListener('storage', event => {
-  if (event.storageArea === localStorage) location.reload();
+window.addEventListener('storage', function () {
+  location.reload();
 });
 
 // ---------- Accueil (index.html) ----------
 if (PAGE === 'home') {
   // Deux boutons : « Commencer mon voyage » et « Continuer ».
-  Array.from(document.getElementsByClassName('btn-commencer')).forEach(function (bouton) {
-    bouton.addEventListener('click', startJourney);
-  });
+  const boutonsCommencer = document.getElementsByClassName('btn-commencer');
+  for (let i = 0; i < boutonsCommencer.length; i++) {
+    boutonsCommencer[i].addEventListener('click', startJourney);
+  }
+
   // Les 3 cartes de mission sont des liens : on bloque seulement une mission verrouillée.
-  for (let i = 0; i < NB_MISSIONS; i++) {
+  for (let i = 0; i < 3; i++) {
     document.getElementById('carte-mission-' + i).addEventListener('click', function (event) {
-      if (!state.profile) {
+      if (!joueur) {
         event.preventDefault();   // le lien n'est pas suivi
         askRegistration();
       } else if (!canAccessMission(i)) {
@@ -750,17 +1143,21 @@ if (PAGE === 'home') {
       }
     });
   }
+
   // Les 8 points de la carte des stades.
-  Array.from(document.getElementsByClassName('map-marker')).forEach(function (point) {
-    point.addEventListener('click', function () {
-      showStadium(point.dataset.stadium);
+  const points = document.getElementsByClassName('map-marker');
+  for (let i = 0; i < points.length; i++) {
+    points[i].addEventListener('click', function () {
+      showStadium(points[i].dataset.stadium);
     });
-  });
+  }
+
   // Formulaire d'inscription.
   document.getElementById('register-form').addEventListener('submit', function (event) {
-    event.preventDefault(); // empêche le rechargement de la page
-    submitProfile(event.target);
+    event.preventDefault();   // empêche le rechargement de la page
+    submitProfile();
   });
+
   // La vidéo et la musique ne jouent pas en même temps.
   document.getElementById('football-video').addEventListener('play', function () {
     musique.pause();
@@ -772,29 +1169,29 @@ if (PAGE === 'home') {
 
 // ---------- Missions (mission1.html, mission2.html, mission3.html) ----------
 if (PAGE === 'mission') {
-  document.getElementById('terminer-' + MISSION).addEventListener('click', function () {
-    finishMission(MISSION);
-  });
+  document.getElementById('terminer-' + MISSION).addEventListener('click', finishMission);
 }
 
 // ---------- Quiz (quiz.html) ----------
 if (PAGE === 'quiz') {
-  Array.from(document.getElementsByClassName('quiz-option')).forEach(function (reponse) {
-    reponse.addEventListener('click', function () {
-      chooseQuizAnswer(reponse);
+  const options = document.getElementsByClassName('quiz-option');
+  for (let i = 0; i < options.length; i++) {
+    options[i].addEventListener('click', function () {
+      chooseQuizAnswer(options[i]);
     });
-  });
+  }
   document.getElementById('quiz-next').addEventListener('click', advanceQuiz);
   document.getElementById('quiz-retry').addEventListener('click', startQuiz);
 }
 
 // ---------- Pendu (pendu.html) ----------
 if (PAGE === 'hangman') {
-  Array.from(document.getElementsByClassName('letter-key')).forEach(function (touche) {
-    touche.addEventListener('click', function () {
-      guessLetter(touche);
+  const touches = document.getElementsByClassName('letter-key');
+  for (let i = 0; i < touches.length; i++) {
+    touches[i].addEventListener('click', function () {
+      guessLetter(touches[i]);
     });
-  });
+  }
   document.getElementById('hangman-replay').addEventListener('click', newHangmanGame);
 }
 
@@ -809,7 +1206,7 @@ if (PAGE === 'settings') {
     setTheme('light');
   });
   document.getElementById('brightness-range').addEventListener('input', function () {
-    state.settings.brightness = Number(document.getElementById('brightness-range').value);
+    luminosite = Number(document.getElementById('brightness-range').value);
     applySettings();
     persist();
     refreshAll();
@@ -817,19 +1214,25 @@ if (PAGE === 'settings') {
   document.getElementById('clear-all').addEventListener('click', clearAllData);
 }
 
+
 /* ==========================================================================
-   14. DÉMARRAGE DE LA PAGE
+   16. DÉMARRAGE DE LA PAGE
    ========================================================================== */
+readState();
 applySettings();
 if (checkAccess()) {
   if (PAGE === 'mission') {
-    restoreMission(MISSION);
+    restoreMission();
     activerDragAndDrop();
   }
-  if (PAGE === 'quiz') openQuiz();
-  if (PAGE === 'hangman') newHangmanGame();
+  if (PAGE === 'quiz') {
+    openQuiz();
+  }
+  if (PAGE === 'hangman') {
+    newHangmanGame();
+  }
   // Arrivée sur l'accueil depuis une page protégée (index.html#registration) sans joueur.
-  if (PAGE === 'home' && !state.profile && location.hash === '#registration') {
+  if (PAGE === 'home' && !joueur && location.hash === '#registration') {
     notify('Premier coup de sifflet : crée ton joueur pour commencer ton aventure.');
   }
   refreshAll();
