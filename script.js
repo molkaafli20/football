@@ -55,8 +55,7 @@ function freshState() {
     profile: null,
     settings: { volume: 0.35, theme: 'dark', brightness: 100, location: null },
     missions: [{ placed: [], completed: false }, { placed: [], completed: false }, { placed: [], completed: false }],
-    quiz: { lastScore: null },
-    hangman: { lastResult: null }
+    quiz: { lastScore: null }
   };
 }
 
@@ -122,12 +121,6 @@ function saveState() {
     localStorage.removeItem('latitude');
     localStorage.removeItem('longitude');
     localStorage.removeItem('precision');
-  }
-  const last = state.hangman.lastResult;
-  if (last) {
-    localStorage.setItem('dernierResultatPendu', last.won ? 'gagné' : 'perdu');
-    localStorage.setItem('dernierScorePendu', last.errors);
-    localStorage.setItem('dernierMotPendu', last.word);
   }
   state.missions.forEach((m, i) => {
     localStorage.setItem('mission' + i + 'Placees', m.placed.join(','));
@@ -285,7 +278,6 @@ function startJourney() {
 
 function toggleMenu(open) {
   document.getElementById('primary-nav').classList.toggle('open', open);
-  document.getElementById('menu-button').setAttribute('aria-expanded', String(open));
   document.getElementById('menu-icon').setAttribute('href', '#i-' + (open ? 'close' : 'menu'));
 }
 
@@ -293,11 +285,9 @@ function toggleMenu(open) {
    6. INSCRIPTION DU JOUEUR
    ========================================================================== */
 function submitProfile(form) {
-  if (state.profile) return;
   const checked = validateProfile(Object.fromEntries(new FormData(form).entries()));
   ['firstName', 'lastName', 'nickname', 'age'].forEach(name => {
     document.getElementById('register-' + name + '-error').textContent = checked.errors[name] || '';
-    document.getElementById('register-' + name).setAttribute('aria-invalid', String(Boolean(checked.errors[name])));
   });
   document.getElementById('register-summary').hidden = checked.valid;
   if (!checked.valid) {
@@ -543,8 +533,12 @@ function guessLetter(key) {
   key.classList.add(word.includes(letter) ? 'good' : 'bad');
   const after = hangmanStatus();
   if (after.finished) {
-    state.hangman.lastResult = { won: after.won, word, errors: after.errors };
-    persist();
+    // Dernier résultat enregistré directement dans le localStorage (setItem du cours).
+    if (storageSupported()) {
+      localStorage.setItem('dernierResultatPendu', after.won ? 'gagné' : 'perdu');
+      localStorage.setItem('dernierScorePendu', after.errors);
+      localStorage.setItem('dernierMotPendu', word);
+    }
     notify(after.won ? 'Bravo ' + state.profile.nickname + ' !' : 'Perdu ! Le mot était : ' + word, after.won ? 'success' : 'info');
   }
   updateHangman();
@@ -696,10 +690,6 @@ function updateMusicButtons() {
   const playing = !musique.paused;
   document.getElementById('header-music-icon').setAttribute('href', '#i-' + (playing ? 'volume' : 'volume-off'));
   Array.from(document.getElementsByClassName('js-audio-icon')).forEach(use => use.setAttribute('href', '#i-' + (playing ? 'pause' : 'play')));
-  if (PAGE === 'home') {
-    document.getElementById('equalizer').classList.toggle('is-playing', playing);
-    document.getElementById('audio-status').textContent = playing ? 'La bande-son de ton aventure' : 'Musique d’ambiance · Lecture manuelle';
-  }
 }
 musique.addEventListener('play', updateMusicButtons);
 musique.addEventListener('pause', updateMusicButtons);
